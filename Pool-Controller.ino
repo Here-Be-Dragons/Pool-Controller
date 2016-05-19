@@ -1,8 +1,12 @@
 // This #include statement was automatically added by the Particle IDE.
 #include "Adafruit_SSD1306/Adafruit_SSD1306.h" //OLED
 
-// Refer to README.md for information regarding which
-// combinations of relay on/off create specific speeds
+// Refer to README.md for additional information
+// https://github.com/Here-Be-Dragons/Pool-Controller
+
+////
+//Start of user configurations
+////
 
 // Update the below array with the settings from 
 // the pump for output to the Screen, SmartThings, and
@@ -13,8 +17,10 @@
 // 2750RPM is the recommended speed for 9 solar panels (~45GPM)
 // 3450RPM for pool cleaning
 uint16_t speedRPM[8] = {0,600,1200,1800,2300,2750,3000,3450};
-// Manually trigger each of the above speeds and record their energy usage here
+// Manually trigger each of the above speeds and record their
+// energy usage below for accurate consumption tracking
 uint16_t energyConsum[8] = {5,100,200,300,400,500,600,700};
+uint16_t expiryLength = 60; //How long to run manual Overrides
 
 // Speed activation times. If two speeds have the same
 // time entered, the higher speed takes precidence.
@@ -27,14 +33,17 @@ uint16_t aSpeed6[] = {    1100,   1300        }
 uint16_t aSpeed7[] = {                        }
 uint16_t aSpeed8[] = {                        }
 
-uint32_t currentTime = 0;     //The current time
-uint32_t currentSpeed = 1;    //The current motor speed
-uint32_t lastChange = 0;      //Time the speed was last changed via scheduler
-uint32_t lastLoop = 0;        //Time of the last successful loop
-uint8_t motorSpeed = 1;       //Valid values 1-8, relates to the speed setting to call
+////
+//End of user configurations
+////
+
+uint16_t currentTime;     //The current time
+uint16_t currentSpeed = 1;    //The current motor speed
+uint16_t lastChange;      //Time the speed was last changed via scheduler
+uint8_t newSpeed = 1;       //Valid values 1-8, relates to the speed setting to call
 bool autoOverride = 0;        //0 for scheduled, 1 for override.  Changes when solar kicks on
 bool manualOverride = 0;      //0 for scheduled, 1 for override.  Changes from user intervention
-uint16_t overrideExpiry = 0;  //This is set when a manual override is triggered 
+uint16_t OverrideStarted = 0;  //This is set when a manual override is triggered 
 
 // Assign pins to relays
 // D0 reserved for SDA of OLED
@@ -55,14 +64,22 @@ void setup() {
 
     oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3D (for the 128x64 screen)
     oled.display(); // show splashscreen
-    Particle.function("Override Schedule", overrideSchedule); //Force speed from user input
+    Particle.function("mOverride", mOverride); //Force speed from user input
     Time.zone(-5);
     delay(5000); //Give it time to stabilize the RTC and get a time from NTP
-    findScheduledSpeed();
-    
+    setPumpSpeed(1);
 }
 
 void loop() {
+  currentTime = Time.hour() * 100 + Time.minute();
+  //checkAutoOverride(); //Need a way to check if we should be runing in auto override
+  if( manualOverride == 1 && OverrideStarted <= currentTime + expiryLength ){
+    endOverride();
+  }
+  newSpeed = findScheduledSpeed(currentTime);
+  if( newspeed != 0 && newSpeed != currentSpeed ){
+    setPumpSpeed(newSpeed);
+  }
   oled.clearDisplay();
   oled.setTextSize(1);
   oled.setTextColor(WHITE);
@@ -73,145 +90,158 @@ void loop() {
   oled.setTextSize(3);
   oled.print(precipInSum);
   oled.display();
-
-  if (Time.hour() < 6 || Time.hour() > 20) {
-        refresh = 1000; //~17 Minutes
-    }
-    else {
-        refresh = 109; //70 seconds
-    }
 }
 
-int findScheduledSpeed(){
-  currentTime = Time.hour() * 100 + Time.minute();
-  for (int i=0; i < sizeof(aSpeed1) / sizeof(uint16_t); i++) {// Find the Scheduled Speed
-    if ( aSpeed1[i] == currentTime ) {
-      motorSpeed = 1;
-      lastChange = Time.hour() * 100 + Time.minute();
-    }
-    if ( aSpeed2[i] == currentTime ) {
-      motorSpeed = 2;
-      lastChange = Time.hour() * 100 + Time.minute();
-    }
-    if ( aSpeed3[i] == currentTime ) {
-      motorSpeed = 3;
-      lastChange = Time.hour() * 100 + Time.minute();
-    }
-    if ( aSpeed4[i] == currentTime ) {
-      motorSpeed = 4;
-      lastChange = Time.hour() * 100 + Time.minute();
-    }
-    if ( aSpeed5[i] == currentTime ) {
-      motorSpeed = 5;
-      lastChange = Time.hour() * 100 + Time.minute();
-    }
-    if ( aSpeed6[i] == currentTime ) {
-      motorSpeed = 6;
-      lastChange = Time.hour() * 100 + Time.minute();
-    }
-    if ( aSpeed7[i] == currentTime ) {
-      motorSpeed = 7;
-      lastChange = Time.hour() * 100 + Time.minute();
-    }
-    if ( aSpeed1[8] == currentTime ) {
-      motorSpeed = 8;
-      lastChange = Time.hour() * 100 + Time.minute();
+int findScheduledSpeed(uint16_t atTime){ // Find the Scheduled Speed
+  for (int i=0; i < sizeof(aSpeed1) / sizeof(uint16_t); i++) {
+    if ( aSpeed1[i] == atTime ) {
+      newSpeed = 1;
     }
   }
+  for (int i=0; i < sizeof(aSpeed2) / sizeof(uint16_t); i++) {
+    if ( aSpeed2[i] == atTime ) {
+      newSpeed = 2;
+    }
+  }
+  for (int i=0; i < sizeof(aSpeed3) / sizeof(uint16_t); i++) {
+    if ( aSpeed3[i] == atTime ) {
+      newSpeed = 3;
+    }
+  }
+  for (int i=0; i < sizeof(aSpeed4) / sizeof(uint16_t); i++) {
+    if ( aSpeed4[i] == atTime ) {
+      newSpeed = 4;
+    }
+  }
+  for (int i=0; i < sizeof(aSpeed5) / sizeof(uint16_t); i++) {
+    if ( aSpeed5[i] == atTime ) {
+      newSpeed = 5;
+    }
+  }
+  for (int i=0; i < sizeof(aSpeed6) / sizeof(uint16_t); i++) {
+    if ( aSpeed6[i] == atTime ) {
+      newSpeed = 6;
+    }
+  }
+  for (int i=0; i < sizeof(aSpeed7) / sizeof(uint16_t); i++) {
+    if ( aSpeed7[i] == atTime ) {
+      newSpeed = 7;
+    }
+  }
+  for (int i=0; i < sizeof(aSpeed8) / sizeof(uint16_t); i++) {
+    if ( aSpeed1[8] == atTime ) {
+      newSpeed = 8;
+    }
+  }
+  return newSpeed;
 }
 
-void setPumpSpeed(motorSpeed, int durationSecs) {
+void setPumpSpeed(newSpeed) {
   if (manualOverride != 1) { // Is there an active manual override?
     if (autoOverride != 1) { // Is there an active automatic override?
-      switch (motorSpeed) {
+      switch (newSpeed) {
         case 1:
           digitalWrite(pPumpRelay1, LOW );
           digitalWrite(pPumpRelay2, LOW );
           digitalWrite(pPumpRelay3, LOW );
-          currentSpeed=1;
           break;
         case 2:
           digitalWrite(pPumpRelay1, HIGH);
           digitalWrite(pPumpRelay2, LOW );
           digitalWrite(pPumpRelay3, LOW );
-          currentSpeed=2;
           break;
         case 3:
           digitalWrite(pPumpRelay1, LOW );
           digitalWrite(pPumpRelay2, HIGH);
           digitalWrite(pPumpRelay3, LOW );
-          currentSpeed=3;
           break;
         case 4:
           digitalWrite(pPumpRelay1, HIGH);
           digitalWrite(pPumpRelay2, HIGH);
           digitalWrite(pPumpRelay3, LOW );
-          currentSpeed=4;
           break;
         case 5:
           digitalWrite(pPumpRelay1, LOW );
           digitalWrite(pPumpRelay2, LOW );
           digitalWrite(pPumpRelay3, HIGH);
-          currentSpeed=5;
           break;
         case 6:
           digitalWrite(pPumpRelay1, HIGH);
           digitalWrite(pPumpRelay2, LOW );
           digitalWrite(pPumpRelay3, HIGH);
-          currentSpeed=6;
           break;
         case 7:
           digitalWrite(pPumpRelay1, LOW );
           digitalWrite(pPumpRelay2, HIGH);
           digitalWrite(pPumpRelay3, HIGH);
-          currentSpeed=7;
           break;
         case 8:
           digitalWrite(pPumpRelay1, HIGH);
           digitalWrite(pPumpRelay2, HIGH);
           digitalWrite(pPumpRelay3, HIGH);
-          currentSpeed=8;
           break;
-        default: 
-          digitalWrite(pPumpRelay1, LOW );
-          digitalWrite(pPumpRelay2, LOW );
-          digitalWrite(pPumpRelay3, LOW );
-          currentSpeed=1;
+        default:
           break;
       }
+      currentSpeed = newSpeed;
+      newSpeed = 0;
 }
 
-void overrideSchedule(String command){
-    
-    if(command == "0"){
-        setPumpSpeed(1,);
-    }
-    
-    else if(command == "1"){
-        setPumpSpeed(2);
-    }
-    
-    else if(command == "2"){
-        setPumpSpeed(3);
-    }
+int mOverride(String command){ //Triggered by SmartThings
+  uint8_t intCommand = atoi(command);
+  manualOverride = 1;
+  overrideStarted = Time.hour() * 100 + Time.minute();
+  //overrideSchedule();
+  setPumpSpeed(intCommand);
+}
 
-    else if(command == "3"){
-        setPumpSpeed(4);
-            
-        }  
-    else if(command == "4") {
-        setPumpSpeed(5);
-            
-        }  
-    else if(command == "5") {
-        setPumpSpeed(6);
-            
-        } 
-    else if(command == "6") {
-        setPumpSpeed(7);
-        }
-    
-    else if(command == "7"){
-        setPumpSpeed(8);
-    }  
+void endOverride(){
+  int testTime = currentTime;
+  newSpeed = 0;
+  while( newSpeed == 0 ){
+    newSpeed = findScheduledSpeed(testTime);
+    testTime--;
+  }
+  manualOverride = 0;
+}
+
+int aOverride(){
+  autoOverride = 1
+}
+
+/*void overrideSchedule(){
+  currentTime = Time.hour() * 100 + Time.minute();
+  setPumpSpeed(); //Convert string to int, then use that to set Pump Speed
+
+  if(command == "1"){
+      setPumpSpeed(1);
+  }
+  
+  else if(command == "2"){
+      setPumpSpeed(2);
+  }
+  
+  else if(command == "3"){
+      setPumpSpeed(3);
+  }
+
+  else if(command == "4"){
+      setPumpSpeed(4);
+          
+      }  
+  else if(command == "5") {
+      setPumpSpeed(5);
+          
+      }  
+  else if(command == "6") {
+      setPumpSpeed(6);
+          
+      } 
+  else if(command == "7") {
+      setPumpSpeed(7);
+      }
+  
+  else if(command == "8"){
+      setPumpSpeed(8);
+  }*/
 }
