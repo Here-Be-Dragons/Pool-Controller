@@ -27,14 +27,14 @@ uint16_t expiryLength = 60; //How long in minutes to run manual Overrides
 
 // Speed activation times. If two speeds have the same
 // time entered, the higher speed takes precidence.
-uint16_t aSpeed1[] = {0,                  2100}
-uint16_t aSpeed2[] = {                        }
-uint16_t aSpeed3[] = { 600,   1200,   1500    }
-uint16_t aSpeed4[] = {                        }
-uint16_t aSpeed5[] = {                        }
-uint16_t aSpeed6[] = {    1100,   1300        }
-uint16_t aSpeed7[] = {                        }
-uint16_t aSpeed8[] = {                        }
+uint16_t aSpeed1[] = {0,                  2100};
+uint16_t aSpeed2[] = {                        };
+uint16_t aSpeed3[] = { 600,   1200,   1500    };
+uint16_t aSpeed4[] = {                        };
+uint16_t aSpeed5[] = {                        };
+uint16_t aSpeed6[] = {    1100,   1300        };
+uint16_t aSpeed7[] = {                        };
+uint16_t aSpeed8[] = {                        };
 
 ////
 //End of user configurations
@@ -47,7 +47,7 @@ uint16_t lastChange;          //Time the speed was last changed via scheduler
 uint8_t scheduledSpeed = 0;   //What speed the schedule says you should be at
 bool autoOverride = 0;        //0 for scheduled, 1 for override.  Changes when solar kicks on
 bool manualOverride = 0;      //0 for scheduled, 1 for override.  Changes from user intervention
-uint16_t OverrideStarted = 0; //This is set to currentTime when a manual override is triggered 
+uint16_t overrideStarted = 0; //This is set to currentTime when a manual override is triggered
 
 // Assign pins to relays
 // D0 reserved for SDA of OLED
@@ -69,7 +69,7 @@ void setup() {
     oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);    // Initialize with the I2C addr 0x3D (for the 128x64 screen)
     oled.display();                            // Show splashscreen
     Particle.function("mOverride", mOverride); // Listen for a manual override via remote user input
-    Time.zone(-5);			       // Ignores DST... :(
+    Time.zone(-5);			                   // Ignores DST... :(
     delay(5000);                               // Give it time to stabilize the RTC and get a time from NTP
     returnToSchedule();                        // Find what the current speed should be
 }
@@ -79,7 +79,7 @@ void loop() {
   //checkAutoOverride(); //Need a way to check if we should be runing in auto override
 
   //Check for expired manual Override
-  if( manualOverride == 1 && OverrideStarted + expiryLength <= currentTime ) {
+  if( manualOverride == 1 && overrideStarted + expiryLength <= currentTime ) {
     returnToSchedule();
   }
 
@@ -97,43 +97,43 @@ void loop() {
 }
 
 int findScheduledSpeed(uint16_t atTime){ // Find the Scheduled Speed
-  int x;
-  for (int i=0; i < sizeof(aSpeed1) / sizeof(uint16_t); i++) {
+  uint8_t x;
+  for (uint16_t i=0; i < sizeof(aSpeed1) / sizeof(uint16_t); i++) {
     if ( aSpeed1[i] == atTime ) {
       x = 1;
     }
   }
-  for (int i=0; i < sizeof(aSpeed2) / sizeof(uint16_t); i++) {
+  for (uint16_t i=0; i < sizeof(aSpeed2) / sizeof(uint16_t); i++) {
     if ( aSpeed2[i] == atTime ) {
       x = 2;
     }
   }
-  for (int i=0; i < sizeof(aSpeed3) / sizeof(uint16_t); i++) {
+  for (uint16_t i=0; i < sizeof(aSpeed3) / sizeof(uint16_t); i++) {
     if ( aSpeed3[i] == atTime ) {
       x = 3;
     }
   }
-  for (int i=0; i < sizeof(aSpeed4) / sizeof(uint16_t); i++) {
+  for (uint16_t i=0; i < sizeof(aSpeed4) / sizeof(uint16_t); i++) {
     if ( aSpeed4[i] == atTime ) {
       x = 4;
     }
   }
-  for (int i=0; i < sizeof(aSpeed5) / sizeof(uint16_t); i++) {
+  for (uint16_t i=0; i < sizeof(aSpeed5) / sizeof(uint16_t); i++) {
     if ( aSpeed5[i] == atTime ) {
       x = 5;
     }
   }
-  for (int i=0; i < sizeof(aSpeed6) / sizeof(uint16_t); i++) {
+  for (uint16_t i=0; i < sizeof(aSpeed6) / sizeof(uint16_t); i++) {
     if ( aSpeed6[i] == atTime ) {
       x = 6;
     }
   }
-  for (int i=0; i < sizeof(aSpeed7) / sizeof(uint16_t); i++) {
+  for (uint16_t i=0; i < sizeof(aSpeed7) / sizeof(uint16_t); i++) {
     if ( aSpeed7[i] == atTime ) {
       x = 7;
     }
   }
-  for (int i=0; i < sizeof(aSpeed8) / sizeof(uint16_t); i++) {
+  for (uint16_t i=0; i < sizeof(aSpeed8) / sizeof(uint16_t); i++) {
     if ( aSpeed1[8] == atTime ) {
       x = 8;
     }
@@ -143,7 +143,7 @@ int findScheduledSpeed(uint16_t atTime){ // Find the Scheduled Speed
 
 void setPumpSpeed() {
   uint8_t newSpeed;
-  newspeed = scheduledSpeed;
+  newSpeed = scheduledSpeed;
   //Set Manual Override Speed to newSpeed if active
   if( manualOverride == 1 ){
     newSpeed = overrideSpeed;
@@ -208,6 +208,7 @@ int mOverride(String command) { //Triggered by SmartThings
   manualOverride = 1;
   overrideStarted = Time.hour() * 100 + Time.minute();
   setPumpSpeed();
+  return currentSpeed;
 }
 
 void returnToSchedule() {
@@ -234,7 +235,7 @@ void updateDisplay(){
   oled.println("Scheduled Speed: ");
   oled.print(scheduledSpeed);
   oled.print(" (");
-  oled.print(speedRPM[ScheduledSpeed-1]);
+  oled.print(speedRPM[scheduledSpeed-1]);
   oled.print(" RPM)");
   oled.println("Manual Override? ");
   if( manualOverride ) oled.print("YES");
