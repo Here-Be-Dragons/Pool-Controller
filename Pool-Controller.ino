@@ -44,7 +44,7 @@ uint16_t currentTime;         //The current time
 uint16_t currentSpeed;        //The current motor speed
 uint16_t overrideSpeed;       //Stores the override speed when set manually
 uint16_t lastChange;          //Time the speed was last changed via scheduler
-uint8_t scheduledSpeed = 0;   //What speed the schedule says you should be at
+uint16_t scheduledSpeed = 0;   //What speed the schedule says you should be at
 bool autoOverride = 0;        //0 for scheduled, 1 for override.  Changes when solar kicks on
 bool manualOverride = 0;      //0 for scheduled, 1 for override.  Changes from user intervention
 uint16_t overrideStarted = 0; //This is set to currentTime when a manual override is triggered
@@ -71,11 +71,12 @@ void setup() {
     Particle.function("mOverride", mOverride); // Listen for a manual override via remote user input
     Time.zone(-5);			                   // Ignores DST... :(
     delay(5000);                               // Give it time to stabilize the RTC and get a time from NTP
+    currentTime = Time.hour() * 100 + Time.minute();
     returnToSchedule();                        // Find what the current speed should be
 }
 
 void loop() {
-  currentTime = Time.hour() * 100 + Time.minute();
+  
   //checkAutoOverride(); //Need a way to check if we should be runing in auto override
 
   //Check for expired manual Override
@@ -97,7 +98,7 @@ void loop() {
 }
 
 int findScheduledSpeed(uint16_t atTime){ // Find the Scheduled Speed
-  uint8_t x;
+  uint16_t x = 0;
   for (uint16_t i=0; i < sizeof(aSpeed1) / sizeof(uint16_t); i++) {
     if ( aSpeed1[i] == atTime ) {
       x = 1;
@@ -195,9 +196,10 @@ void setPumpSpeed() {
           break;
 	//This condition should never happen, but default to Speed 6 if it does
         default:
-          digitalWrite(pPumpRelay1, HIGH);
+          digitalWrite(pPumpRelay1, LOW );
           digitalWrite(pPumpRelay2, LOW );
-          digitalWrite(pPumpRelay3, HIGH);
+          digitalWrite(pPumpRelay3, LOW );
+          returnToSchedule(); //Try a schedule reset
           break;
       }
       currentSpeed = newSpeed; //Update current speed value
@@ -215,7 +217,7 @@ void returnToSchedule() {
   int testTime = currentTime;
   while( scheduledSpeed == 0 ) {
     scheduledSpeed = findScheduledSpeed(testTime);
-    testTime--;
+    --testTime;
   }
   manualOverride = 0;
 }
@@ -224,25 +226,23 @@ void updateDisplay(){
   oled.setTextSize(1);
   oled.setTextColor(WHITE);
   oled.setCursor(0,0);
-  oled.println("Current Time: ");
-  oled.print(currentTime);
-  oled.println("Current Speed: ");
+  oled.print("Current Time: ");
+  oled.println(currentTime);
+  oled.print("Speed: ");
   oled.print(currentSpeed);
   oled.print(" (");
   oled.print(speedRPM[currentSpeed-1]);
-  oled.print(" RPM)");
-  oled.println();
-  oled.println("Scheduled Speed: ");
+  oled.println(" RPM)");
+  oled.print("Scheduled: ");
   oled.print(scheduledSpeed);
   oled.print(" (");
   oled.print(speedRPM[scheduledSpeed-1]);
-  oled.print(" RPM)");
-  oled.println("Manual Override? ");
-  if( manualOverride ) oled.print("YES");
-  else oled.print("no");
-  oled.println("Automatic Override? ");
-  if( autoOverride ) oled.print("YES");
-  else oled.print("no");
-  oled.setTextSize(3);
+  oled.println(" RPM)");
+  oled.print("Manual Override? ");
+  if( manualOverride ) oled.println("YES");
+  else oled.println("no");
+  oled.print("Auto Override? ");
+  if( autoOverride ) oled.println("YES");
+  else oled.println("no");
   oled.display();
 }
