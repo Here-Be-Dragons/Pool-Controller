@@ -6,6 +6,8 @@
 
 // TODO: Implement Energy Consumption Info
 // TODO: Fix SmartThings override
+// TODO: Fix manual overrides looping through midnight
+// TODO: Fix the fact that minutes only have 60 but im comparing 100
 
 ////
 //Start of user configurations
@@ -26,7 +28,7 @@ uint16_t speedRPM[8] = {0,600,1200,1800,2300,2750,3000,3450};
 uint16_t energyConsum[8] = {5,100,200,300,400,500,600,700};
 
 // How long (in minutes) to run manual Overrides
-uint16_t overrideLength = 60; 
+uint16_t overrideLength = 60;
 
 // Speed activation times. If two speeds have the same
 // time entered, the higher speed takes precidence.
@@ -79,12 +81,17 @@ void setup() {
 }
 
 void loop() {
-  
+  //Finds the current HHMM each loop
+  currentTime = Time.hour() * 100 + Time.minute();
   //checkAutoOverride(); //Need a way to check if we should be runing in auto override
 
   //Check for expired manual Override
-  if( manualOverride == 1 && overrideStarted + overrideLength <= currentTime ) {
-    returnToSchedule();
+  if( manualOverride == 1 ) {
+    uint16_t ovr = overrideStarted + overrideLength;
+    if (ovr >= 2400) ovr-=2400;
+    if (ovr <= currentTime) {
+      returnToSchedule();
+    }
   }
   //Check for new scheduled speed
   
@@ -98,7 +105,6 @@ void loop() {
 
   //Update the oled display
   updateDisplay();
-  delay(100);
 }
 
 int findScheduledSpeed(uint16_t atTime){ // Find the Scheduled Speed
@@ -203,7 +209,7 @@ void setPumpSpeed() {
           digitalWrite(pPumpRelay1, LOW );
           digitalWrite(pPumpRelay2, LOW );
           digitalWrite(pPumpRelay3, LOW );
-          //returnToSchedule(); //Try a schedule reset
+          returnToSchedule(); //Try a schedule reset
           break;
       }
       currentSpeed = newSpeed; //Update current speed value
@@ -213,7 +219,7 @@ int mOverride(String command) { //Triggered by SmartThings
   overrideSpeed = atoi(command);
   if( overrideSpeed <= 8 ){
     manualOverride = 1;
-    overrideStarted = Time.hour() * 100 + Time.minute();
+    overrideStarted = currentTime;
     setPumpSpeed();
     return currentSpeed;
   } else {
@@ -231,9 +237,12 @@ void returnToSchedule() {
   int testTime = currentTime;
   while( scheduledSpeed == 0 ) {
     scheduledSpeed = findScheduledSpeed(testTime);
-    --testTime;
+    if( testTime == 0 ) testTime = 2359; //catch a backwards loop past midnight
+    else testTime--;
   }
   manualOverride = 0;
+  overrideSpeed = 0;
+  overrideStarted = 0;
 }
 void updateDisplay(){
   oled.clearDisplay();
@@ -260,5 +269,8 @@ void updateDisplay(){
   else oled.println("no");
   oled.print("Override Spd: ");
   oled.println(overrideSpeed);
+  oled.print("Override timer: ");
+  oled.println(overrideStarted + 60 - currentTime);
   oled.display();
+  
 }
