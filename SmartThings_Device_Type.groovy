@@ -18,7 +18,6 @@
 
 metadata {
 	definition (name: "Hayward Tristar VS Controller", namespace: "Here-Be-Dragons", author: "Jerad Jacob") {
-		capability "Switch"
 		capability "Polling"
 		capability "Refresh"
 
@@ -31,7 +30,7 @@ metadata {
 		command "speed6"
 		command "speed7"
 		command "speed8"
-		command "updateData", ["string"]
+		// command "updateData", ["string"]
 		command "resume"
 	}
 
@@ -48,8 +47,9 @@ metadata {
 			state("default", label:'Currently: ${currentValue} RPM', backgroundColor: "#7B8BFF")
 		}
 		standardTile("off", "device.setSpeed", decoration: "flat", width: 3, height: 1) {
-			state("inactive", action:"setSpeed(1)", label:'Set OFF', nextState:"active", backgroundColor:"#F7C4BA")
-			state("active", action:"setSpeed(1)", label:'Set OFF', backgroundColor:"#F7C4BA")
+			state("default", action:"setSpeed(1)", label:'Set OFF', backgroundColor:"#F7C4BA")
+            //state("inactive", action:"setSpeed(1)", label:'Set OFF', nextState:"active", backgroundColor:"#F7C4BA")
+			//state("active", action:"setSpeed(1)", label:'Set OFF', backgroundColor:"#F7C4BA")
 		}
 		standardTile("speed2", "device.setSpeed", decoration: "flat", width: 3, height: 1) {
 			state("inactive", action:"setSpeed(2)",  label:'Set Speed 2', backgroundColor:"#F7C4BA")
@@ -89,11 +89,11 @@ metadata {
 		main "icon"   
 		details([
 		"currentSpeed",	"refresh",
-								"resume",
-		"off",					"speed2",
-		"speed3", 			"speed4",
-		"speed5", 			"speed6",
-		"speed7", 			"speed8"
+						"resume",
+		"off",			"speed2",
+		"speed3", 		"speed4",
+		"speed5", 		"speed6",
+		"speed7", 		"speed8"
 		])
 	}
 }
@@ -115,10 +115,28 @@ def updateDeviceData(actualData) {
 	sendEvent(name: "heatingSetpoint", value: deviceData.setPoint, unit: getTemperatureScale())
 }*/
 
-def setSpeed(x){
-	put ${x}
-}
+/*def setSpeed(x) {
+    def params = [
+        uri: "https://api.particle.io",
+        path: "/v1/devices/${deviceId}/mOverride",
+        query: [
+            access_token: token,
+            command: command
+        ]
+    ]
 
+    try {
+        httpPost(params) { resp ->
+            log.debug"response data: ${resp.data}"
+        }
+    } catch (e) {
+        log.error "something went wrong: $e"
+    }
+}*/
+def setSpeed(x) {
+	put x
+}
+/*
 def off(){
 	log.debug "Set State: OFF"
 	put '1'
@@ -163,11 +181,11 @@ def resume(){
 	log.debug "Set State: Resume Schedule"
 	put 'resume'
 }
-
-private put(newSpeed) {
+}*/
+private put(command) {
     //Particle Photon API Call
     httpPost(
-        uri: "https://api.particle.io/v1/devices/${deviceId}/newSpeed",
-        body: [access_token: ${token}, command: newSpeed],  
-    )
+        uri: "https://api.particle.io/v1/devices/${deviceId}/mOverride",
+        body: [access_token: token, command: command],
+    ) {response -> log.debug (response.data)}
 }
