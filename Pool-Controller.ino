@@ -22,7 +22,7 @@ uint16_t speedRPM[8] = {0,600,1200,1800,2300,2750,3000,3450};
 
 // Manually trigger each of the above speeds and record their
 // energy usage (Watts) below for accurate consumption tracking
-uint16_t energyConsum[8] = {5,100,200,300,400,500,600,700};
+uint16_t energyConsum[8] = {5,100,200,400,800,1100,1400,1700};
 
 // How long (in seconds) to run manual Overrides
 uint16_t overrideLength = 3600;
@@ -48,8 +48,8 @@ uint16_t aSpeed8[] = {                            };
 uint32_t currentEpochTime;       //The current Epoch time set at the beginning of each loop in getTimes()
 uint16_t currentTime;       //Friendly time converted from currentEpochTime via convertTime(), 10:00 PM is referenced as 2200
 uint16_t previousTime;       //The time as of the last loop, set at the bottom of loop()
-float kWhTally = 0;      //Daily count of kWh consumption, to upload to Google Docs for tracking
-char publishString[40];      //Temporary string to use for Particle.publish of kWhTally
+double WhTally = 0;      //Daily count of kWh consumption, to upload to Google Docs for tracking
+char publishString[40];      //Temporary string to use for Particle.publish of WhTally
 uint16_t currentSpeed = 0;       //The current motor speed setting number (1-8)
 uint16_t overrideSpeed;          //Stores the override speed when set manually
 //uint16_t lastChange;           //Time the speed was last changed via scheduler (not currently used)
@@ -275,11 +275,11 @@ void returnToSchedule() {
 void trackEnergy(){
   if (currentTime != previousTime) {
     //if (currentTime == 0) {
-    sprintf(publishString, "%.04", kWhTally); //  Convert uint16_t kWhTally to char[40] for Particle.publish()
+    sprintf(publishString, "%.5f", WhTally); //  Convert uint16_t WhTally to char[40] for Particle.publish()
     Particle.publish("24Hr_kWh", publishString);
-    //kWhTally = 0;
+    //WhTally = 0;
   //}
-  kWhTally += ( energyConsum[currentSpeed-1] / 60 / 1000 ); //Add 1 minute worth of kWh
+  WhTally += (double) ( energyConsum[currentSpeed-1] / 60 ); //Add 1 minute worth of kWh
     previousTime = currentTime;
   }
 }
@@ -298,8 +298,8 @@ void updateDisplay(){
   oled.print(" (");
   oled.print(speedRPM[currentSpeed-1]);
   oled.println(" RPM)");
-  oled.print("kWh: ");
-  oled.println(kWhTally);
+  oled.print("Wh: ");
+  oled.println(WhTally);
   oled.print("Sched: ");
   oled.print(scheduledSpeed);
   oled.print(" (");
