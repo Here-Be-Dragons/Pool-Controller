@@ -27,6 +27,9 @@ uint16_t energyConsum[8] = {5,100,200,300,400,500,600,700};
 // How long (in seconds) to run manual Overrides
 uint16_t overrideLength = 3600;
 
+// Time Zone offset
+int16_t timeZone = -5;
+
 // Speed activation times in HHMM format. If two speeds have the same
 // time entered, the higher speed takes precidence.
 uint16_t aSpeed1[] = {0000,                   2100};
@@ -43,17 +46,17 @@ uint16_t aSpeed8[] = {                            };
 ////
 
 uint32_t currentEpochTime;       //The current Epoch time set at the beginning of each loop in getTimes()
-uint16_t currentTime;			 //Friendly time converted from currentEpochTime via convertTime(), 10:00 PM is referenced as 2200
-uint16_t previousTime;			 //The time as of the last loop, set at the bottom of loop()
-uint16_t kWhTally = 0;			 //Daily count of kWh consumption, to upload to Google Docs for tracking
-char publishString[40];			 //Temporary string to use for Particle.publish of kWhTally
+uint16_t currentTime;       //Friendly time converted from currentEpochTime via convertTime(), 10:00 PM is referenced as 2200
+uint16_t previousTime;       //The time as of the last loop, set at the bottom of loop()
+float kWhTally = 0;      //Daily count of kWh consumption, to upload to Google Docs for tracking
+char publishString[40];      //Temporary string to use for Particle.publish of kWhTally
 uint16_t currentSpeed = 0;       //The current motor speed setting number (1-8)
 uint16_t overrideSpeed;          //Stores the override speed when set manually
 //uint16_t lastChange;           //Time the speed was last changed via scheduler (not currently used)
 uint16_t scheduledSpeed = 0;     //What speed the schedule says you should be at
 uint8_t autoOverride = 0;        //0 for scheduled, 1 for override.  Changes when solar kicks on
 uint8_t manualOverride = 0;      //0 for scheduled, 1 for override.  Changes via user intervention
-uint16_t overrideStarted = 0;    //This is set to currentEpochTime when a manual override is triggered
+uint32_t overrideStarted = 0;    //This is set to currentEpochTime when a manual override is triggered
 
 // Assign pins to relays
 // D0 reserved for SDA of OLED
@@ -75,9 +78,9 @@ void setup() {
     oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);    // Initialize with the I2C addr 0x3D (for the 128x64 screen)
     oled.display();                            // Show splashscreen
     Particle.function("mOverride", mOverride); // Listen for a manual override via remote user input
-    Time.zone(-5);			                   // Ignores DST... :(
     delay(5000);                               // Give it time to stabilize the RTC and get a time from NTP
-	getTimes();								   // Set up initial times
+    Time.zone(-5);                         // Ignores DST... :(
+  getTimes();                  // Set up initial times
     returnToSchedule();                        // Find what the current speed should be
 }
 
@@ -106,20 +109,18 @@ void loop() {
   updateDisplay();
   
   //Keep track of energy consumption
-  if (currentTime != previousTime) {
-    if (currentTime == 0) {
-		sprintf(publishString, "%d", kWhTally); //  Convert uint16_t kWhTally to char[40] for Particle.publish()
-		Particle.publish("24Hr kWh usage", publishString);
-		kWhTally = 0;
-	}
-	kWhTally += energyConsum[currentSpeed-1]/60; //One minute worth of kWh
-    previousTime = currentTime;
-  }
+  trackEnergy();
 }
 
 void getTimes(){
+  //Time.zone() does not suppport DST, so implement it manually
+  if( Time.month() < 3 || (Time.month() == 3 && Time.day() <=13) || (Time.month() == 11 && Time.day() >=6) || Time.month() > 11 ){
+      Time.zone(timeZone);
+  }else{
+      Time.zone(timeZone + 1);
+  }
   //Gets Time-zone adjusted Epoch Time from the cloud, and converted HHMM comparison time
-  currentEpochTime = Time.local();
+  currentEpochTime = Time.now();
   currentTime = convertTime(currentEpochTime);
 }
 
@@ -229,7 +230,7 @@ void setPumpSpeed() {
           digitalWrite(pPumpRelay2, HIGH);
           digitalWrite(pPumpRelay3, HIGH);
           break;
-	//This condition should never happen, but default to Speed 1 if it does
+  //This condition should never happen, but default to Speed 1 if it does
         default:
           digitalWrite(pPumpRelay1, LOW );
           digitalWrite(pPumpRelay2, LOW );
@@ -262,7 +263,7 @@ void returnToSchedule() {
   uint32_t testTimeEpoch = currentEpochTime;
   uint16_t testTime;
   while( scheduledSpeed == 0 ) {
-	testTime = convertTime(testTimeEpoch);
+  testTime = convertTime(testTimeEpoch);
     scheduledSpeed = findScheduledSpeed(testTime);
     testTimeEpoch--;
   }
@@ -270,11 +271,26 @@ void returnToSchedule() {
   overrideSpeed = 0;
   overrideStarted = 0;
 }
+
+void trackEnergy(){
+  if (currentTime != previousTime) {
+    //if (currentTime == 0) {
+    sprintf(publishString, "%.04", kWhTally); //  Convert uint16_t kWhTally to char[40] for Particle.publish()
+    Particle.publish("24Hr_kWh", publishString);
+    //kWhTally = 0;
+  //}
+  kWhTally += ( energyConsum[currentSpeed-1] / 60 / 1000 ); //Add 1 minute worth of kWh
+    previousTime = currentTime;
+  }
+}
+
 void updateDisplay(){
   oled.clearDisplay();
   oled.setTextSize(1);
   oled.setTextColor(WHITE);
   oled.setCursor(0,0);
+  oled.print("Epoch: ");
+  oled.println(currentEpochTime);
   oled.print("Current Time: ");
   oled.println(currentTime);
   oled.print("Speed: ");
@@ -282,21 +298,21 @@ void updateDisplay(){
   oled.print(" (");
   oled.print(speedRPM[currentSpeed-1]);
   oled.println(" RPM)");
+  oled.print("kWh: ");
+  oled.println(kWhTally);
   oled.print("Sched: ");
   oled.print(scheduledSpeed);
   oled.print(" (");
   oled.print(speedRPM[scheduledSpeed-1]);
   oled.println(" RPM)");
-  oled.print("Manual Override? ");
-  if( manualOverride ) oled.println("YES");
-  else oled.println("no");
-  oled.print("Auto Override? ");
-  if( autoOverride ) oled.println("YES");
-  else oled.println("no");
-  oled.print("Override Spd: ");
-  oled.println(overrideSpeed);
-  oled.print("Override timer: ");
-  oled.println(overrideStarted + 60 - currentTime);
+  if( manualOverride ) {
+    oled.println("MANUAL OVERRIDE");
+    oled.print("Override Spd: ");
+    oled.println(overrideSpeed);
+    oled.print("Override timer: ");
+    oled.println(overrideStarted + overrideLength - currentEpochTime);
+  }
+  if( autoOverride ) oled.println("AUTO OVERRIDE");
   oled.display();
   
 }
