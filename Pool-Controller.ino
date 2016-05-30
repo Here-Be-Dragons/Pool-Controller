@@ -4,10 +4,7 @@
 // Refer to README.md for additional information
 // https://github.com/Here-Be-Dragons/Pool-Controller
 
-// TODO: Implement Energy Consumption Info
 // TODO: Fix SmartThings override
-// TODO: Fix manual overrides looping through midnight
-// TODO: Fix the fact that minutes only have 60 but im comparing 100
 
 ////
 //Start of user configurations
@@ -27,32 +24,36 @@ uint16_t speedRPM[8] = {0,600,1200,1800,2300,2750,3000,3450};
 // energy usage (Watts) below for accurate consumption tracking
 uint16_t energyConsum[8] = {5,100,200,300,400,500,600,700};
 
-// How long (in minutes) to run manual Overrides
-uint16_t overrideLength = 60;
+// How long (in seconds) to run manual Overrides
+uint16_t overrideLength = 3600;
 
-// Speed activation times. If two speeds have the same
+// Speed activation times in HHMM format. If two speeds have the same
 // time entered, the higher speed takes precidence.
-uint16_t aSpeed1[] = {0,                  2100};
-uint16_t aSpeed2[] = {                        };
-uint16_t aSpeed3[] = { 600,   1200,   1500    };
-uint16_t aSpeed4[] = {                        };
-uint16_t aSpeed5[] = {                        };
-uint16_t aSpeed6[] = {    1100,   1300        };
-uint16_t aSpeed7[] = {                        };
-uint16_t aSpeed8[] = {                        };
+uint16_t aSpeed1[] = {0000,                   2100};
+uint16_t aSpeed2[] = {                            };
+uint16_t aSpeed3[] = {    0600,   1200,   1500    };
+uint16_t aSpeed4[] = {                            };
+uint16_t aSpeed5[] = {                            };
+uint16_t aSpeed6[] = {        1100,   1300        };
+uint16_t aSpeed7[] = {                            };
+uint16_t aSpeed8[] = {                            };
 
 ////
 //End of user configurations
 ////
 
-uint16_t currentTime;            //The current time set at the beginning of each loop
-uint16_t currentSpeed;           //The current motor speed
+uint32_t currentEpochTime;       //The current Epoch time set at the beginning of each loop in getTimes()
+uint16_t currentTime;			 //Friendly time converted from currentEpochTime via convertTime(), 10:00 PM is referenced as 2200
+uint16_t previousTime;			 //The time as of the last loop, set at the bottom of loop()
+uint16_t kWhTally = 0;			 //Daily count of kWh consumption, to upload to Google Docs for tracking
+char publishString[40];			 //Temporary string to use for Particle.publish of kWhTally
+uint16_t currentSpeed = 0;       //The current motor speed setting number (1-8)
 uint16_t overrideSpeed;          //Stores the override speed when set manually
-uint16_t lastChange;             //Time the speed was last changed via scheduler
+//uint16_t lastChange;           //Time the speed was last changed via scheduler (not currently used)
 uint16_t scheduledSpeed = 0;     //What speed the schedule says you should be at
 uint8_t autoOverride = 0;        //0 for scheduled, 1 for override.  Changes when solar kicks on
-uint8_t manualOverride = 0;      //0 for scheduled, 1 for override.  Changes from user intervention
-uint16_t overrideStarted = 0;    //This is set to currentTime when a manual override is triggered
+uint8_t manualOverride = 0;      //0 for scheduled, 1 for override.  Changes via user intervention
+uint16_t overrideStarted = 0;    //This is set to currentEpochTime when a manual override is triggered
 
 // Assign pins to relays
 // D0 reserved for SDA of OLED
@@ -76,25 +77,23 @@ void setup() {
     Particle.function("mOverride", mOverride); // Listen for a manual override via remote user input
     Time.zone(-5);			                   // Ignores DST... :(
     delay(5000);                               // Give it time to stabilize the RTC and get a time from NTP
-    currentTime = Time.hour() * 100 + Time.minute();
+	getTimes();								   // Set up initial times
     returnToSchedule();                        // Find what the current speed should be
 }
 
 void loop() {
-  //Finds the current HHMM each loop
-  currentTime = Time.hour() * 100 + Time.minute();
-  //checkAutoOverride(); //Need a way to check if we should be runing in auto override
+  //Finds the current time each loop
+  getTimes();
 
   //Check for expired manual Override
   if( manualOverride == 1 ) {
-    uint16_t ovr = overrideStarted + overrideLength;
-    if (ovr >= 2400) ovr-=2400;
-    if (ovr <= currentTime) {
+    uint32_t ovr = overrideStarted + overrideLength;
+    if (ovr <= currentEpochTime) {
       returnToSchedule();
     }
   }
+
   //Check for new scheduled speed
-  
   scheduledSpeed = findScheduledSpeed(currentTime);
 
   //Check for Solar Speed Override.  Applies in setPumpSpeed()
@@ -105,9 +104,33 @@ void loop() {
 
   //Update the oled display
   updateDisplay();
+  
+  //Keep track of energy consumption
+  if (currentTime != previousTime) {
+    if (currentTime == 0) {
+		sprintf(publishString, "%d", kWhTally); //  Convert uint16_t kWhTally to char[40] for Particle.publish()
+		Particle.publish("24Hr kWh usage", publishString);
+		kWhTally = 0;
+	}
+	kWhTally += energyConsum[currentSpeed-1]/60; //One minute worth of kWh
+    previousTime = currentTime;
+  }
 }
 
-int findScheduledSpeed(uint16_t atTime){ // Find the Scheduled Speed
+void getTimes(){
+  //Gets Time-zone adjusted Epoch Time from the cloud, and converted HHMM comparison time
+  currentEpochTime = Time.local();
+  currentTime = convertTime(currentEpochTime);
+}
+
+uint16_t convertTime(uint32_t testTime){
+  //Converts Epoch to HHMM
+  uint16_t returnTime;
+  returnTime = Time.hour(testTime) * 100 + Time.minute(testTime);
+  return returnTime;
+}
+
+uint16_t findScheduledSpeed(uint16_t atTime){ // Find the Scheduled Speed
   uint16_t x = scheduledSpeed;
   for (uint16_t i=0; i < sizeof(aSpeed1) / sizeof(uint16_t); i++) {
     if ( aSpeed1[i] == atTime ) {
@@ -155,10 +178,12 @@ int findScheduledSpeed(uint16_t atTime){ // Find the Scheduled Speed
 void setPumpSpeed() {
   uint8_t newSpeed;
   newSpeed = scheduledSpeed;
+  
   //Set Manual Override Speed to newSpeed if active
   if( manualOverride == 1 ){
     newSpeed = overrideSpeed;
   }
+  
   //If auto override is active, set a minimum speed
   if( autoOverride == 1 && newSpeed < 6 ){
     newSpeed = 6;
@@ -204,7 +229,7 @@ void setPumpSpeed() {
           digitalWrite(pPumpRelay2, HIGH);
           digitalWrite(pPumpRelay3, HIGH);
           break;
-	//This condition should never happen, but default to Speed 6 if it does
+	//This condition should never happen, but default to Speed 1 if it does
         default:
           digitalWrite(pPumpRelay1, LOW );
           digitalWrite(pPumpRelay2, LOW );
@@ -216,29 +241,30 @@ void setPumpSpeed() {
 }
 
 int mOverride(String command) { //Triggered by SmartThings
-  overrideSpeed = atoi(command);
-  if( overrideSpeed <= 8 ){
+  overrideSpeed = atoi(command); //Convert string to integer
+  if( overrideSpeed <= 8 ){ //These are direct speeds
     manualOverride = 1;
-    overrideStarted = currentTime;
+    overrideStarted = currentEpochTime;
     setPumpSpeed();
-    return currentSpeed;
   } else {
     if( overrideSpeed == 9 ){ //9 is "return to schedule"
       manualOverride = 0;
       returnToSchedule();
     }
-    else if( overrideSpeed == 10){
-        //do something
+    else if( overrideSpeed == 10){ //10 is a poll for current speed, no changes
+        //Just a poll, no changes
     }
   }
+  return speedRPM[currentSpeed-1];
 }
 
 void returnToSchedule() {
-  int testTime = currentTime;
+  uint32_t testTimeEpoch = currentEpochTime;
+  uint16_t testTime;
   while( scheduledSpeed == 0 ) {
+	testTime = convertTime(testTimeEpoch);
     scheduledSpeed = findScheduledSpeed(testTime);
-    if( testTime == 0 ) testTime = 2359; //catch a backwards loop past midnight
-    else testTime--;
+    testTimeEpoch--;
   }
   manualOverride = 0;
   overrideSpeed = 0;
