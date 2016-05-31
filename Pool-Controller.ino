@@ -76,7 +76,7 @@ void setup() {
     pinMode(pSolarRelay1, INPUT );
 
     oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);    // Initialize with the I2C addr 0x3D (for the 128x64 screen)
-    oled.display();                            // Show splashscreen
+    //oled.display();                            // Show splashscreen
     Particle.function("mOverride", mOverride); // Listen for a manual override via remote user input
     delay(5000);                               // Give it time to stabilize the RTC and get a time from NTP
     Time.zone(-5);                         // Ignores DST... :(
@@ -286,9 +286,11 @@ void trackEnergy(){
 
 void updateDisplay(){ //128x64
   oled.clearDisplay();
-  oled.setTextSize(7);
+  oled.drawRect(80,0,48,55, WHITE);
+  oled.drawRect(81,1,46,53, WHITE);
+  oled.setTextSize(6);
   oled.setTextColor(WHITE);
-  oled.setCursor(86,0);
+  oled.setCursor(88,6);
   oled.print(currentSpeed);
   oled.setTextSize(1);
   oled.setCursor(80,57);
