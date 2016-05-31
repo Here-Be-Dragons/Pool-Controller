@@ -284,32 +284,26 @@ void trackEnergy(){
   }
 }
 
-void updateDisplay(){
+void updateDisplay(){ //128x64
   oled.clearDisplay();
-  oled.setTextSize(1);
+  oled.setTextSize(7);
   oled.setTextColor(WHITE);
-  oled.setCursor(0,0);
-  oled.print("Epoch: ");
-  oled.println(currentEpochTime);
-  oled.print("Current Time: ");
-  oled.println(currentTime);
-  oled.print("Speed: ");
+  oled.setCursor(86,0);
   oled.print(currentSpeed);
-  oled.print(" (");
+  oled.setTextSize(1);
+  oled.setCursor(80,57);
   oled.print(speedRPM[currentSpeed-1]);
-  oled.println(" RPM)");
+  oled.print(" RPM");
+  oled.setCursor(0,0);
+  oled.print("Time: ");
+  oled.println(currentTime);
   oled.print("Wh: ");
   oled.println(WhTally);
-  oled.print("Sched: ");
-  oled.print(scheduledSpeed);
-  oled.print(" (");
-  oled.print(speedRPM[scheduledSpeed-1]);
-  oled.println(" RPM)");
   if( manualOverride ) {
-    oled.println("MANUAL OVERRIDE");
-    oled.print("Override Spd: ");
+    oled.println("MANUAL OVERRIDE:");
+    oled.print("Spd: ");
     oled.println(overrideSpeed);
-    oled.print("Override timer: ");
+    oled.print("Timer: ");
     oled.println(overrideStarted + overrideLength - currentEpochTime);
   }
   if( autoOverride ) oled.println("AUTO OVERRIDE");
