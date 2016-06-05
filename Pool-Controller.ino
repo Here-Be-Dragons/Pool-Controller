@@ -31,32 +31,34 @@ uint16_t overrideLength = 3600;
 int16_t timeZone = -5;
 
 // Speed activation times in HHMM format. If two speeds have the same
-// time entered, the higher speed takes precidence.
-uint16_t aSpeed1[] = {0000,                   2100};
-uint16_t aSpeed2[] = {                            };
-uint16_t aSpeed3[] = {    0600,   1200,   1500    };
-uint16_t aSpeed4[] = {                            };
-uint16_t aSpeed5[] = {                            };
-uint16_t aSpeed6[] = {        1100,   1300        };
-uint16_t aSpeed7[] = {                            };
-uint16_t aSpeed8[] = {                            };
+// time entered, the higher speed takes precidence.  Leave off any
+// zeros before the first non-zero number
+uint16_t aSpeed1[] = {0,                  2100};
+uint16_t aSpeed2[] = {                        };
+uint16_t aSpeed3[] = { 600,   1200,   1500    };
+uint16_t aSpeed4[] = {                        };
+uint16_t aSpeed5[] = {                        };
+uint16_t aSpeed6[] = {    1100,   1300        };
+uint16_t aSpeed7[] = {                        };
+uint16_t aSpeed8[] = {                        };
 
 ////
 //End of user configurations
 ////
 
-time_t currentEpochTime;       //The current Epoch time set at the beginning of each loop in getTimes()
-uint16_t currentTime;       //Friendly time converted from currentEpochTime via convertTime(), 10:00 PM is referenced as 2200
-uint16_t previousTime;       //The time as of the last loop, set at the bottom of loop()
-double WhTally = 0;          //Daily count of Wh consumption, to upload to Google Docs for tracking
-char publishString[40];      //Temporary string to use for Particle.publish of WhTally
+time_t currentEpochTime = 0;         //The current Epoch time set at the beginning of each loop in getTimes()
+uint16_t currentTime = 0;			 //Friendly time converted from currentEpochTime via convertTime(), 10:00 PM is referenced as 2200
+uint16_t previousTime = 0;			 //The time as of the last loop, set at the bottom of loop()
+double WhTally = 0;			     //Daily count of Wh consumption, to upload to Google Docs for tracking
+char publishString[40];			 //Temporary string to use for Particle.publish of WhTally
 uint16_t currentSpeed = 0;       //The current motor speed setting number (1-8)
 uint16_t overrideSpeed;          //Stores the override speed when set manually
 //uint16_t lastChange;           //Time the speed was last changed via scheduler (not currently used)
 uint16_t scheduledSpeed = 0;     //What speed the schedule says you should be at
-uint8_t autoOverride = 0;        //0 for scheduled, 1 for override.  Changes when solar kicks on
+uint8_t autoOverride = 1;        //0 for scheduled, 1 for override.  Changes when solar kicks on
 uint8_t manualOverride = 0;      //0 for scheduled, 1 for override.  Changes via user intervention
 uint32_t overrideStarted = 0;    //This is set to currentEpochTime when a manual override is triggered
+uint32_t rButton = 0;
 
 // Assign pins to relays
 // D0 reserved for SDA of OLED
@@ -64,8 +66,9 @@ uint32_t overrideStarted = 0;    //This is set to currentEpochTime when a manual
 #define pPumpRelay1     D2
 #define pPumpRelay2     D3
 #define pPumpRelay3     D4
-#define pSolarRelay1    D5
-#define OLED_RESET      D6
+#define pSolarRelay1    D6
+#define OLED_RESET      D5 //Not sure what this is for, not connected
+#define pButtons        A0
 
 Adafruit_SSD1306 oled(OLED_RESET);
 
@@ -73,20 +76,36 @@ void setup() {
     pinMode(pPumpRelay1,  OUTPUT);
     pinMode(pPumpRelay2,  OUTPUT);
     pinMode(pPumpRelay3,  OUTPUT);
-    pinMode(pSolarRelay1, INPUT );
+    pinMode(pSolarRelay1, INPUT); // Solar panel on pulls this down to ground.  Need INPUT_PULLUP for inactive relay, else it would float
+    pinMode(pButtons, INPUT);
 
     oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);    // Initialize with the I2C addr 0x3D (for the 128x64 screen)
-    //oled.display();                            // Show splashscreen
+    
+    for (int x = 30; x >= 0; x--){                   // Give it x seconds to stabilize the RTC and get a time from NTP
+        oled.clearDisplay();                       // Clear Screen
+        oled.drawRect(0,0,128,64, WHITE);
+        oled.drawRect(1,1,127,63, WHITE);
+        oled.setTextColor(WHITE);
+        oled.setCursor(5,5);
+        oled.setTextSize(1);
+        oled.println("Pool-Controller v1.0");
+        oled.print("    by Jerad Jacob");
+        oled.setCursor(30,50);
+        oled.print("Startup: ");
+        oled.print(x);
+        oled.display();
+        delay(1000);
+    }
     Particle.function("mOverride", mOverride); // Listen for a manual override via remote user input
-    delay(5000);                               // Give it time to stabilize the RTC and get a time from NTP
-    Time.zone(-5);                         // Ignores DST... :(
-  getTimes();                  // Set up initial times
+	getTimes();								   // Set up initial times
     returnToSchedule();                        // Find what the current speed should be
 }
 
 void loop() {
   //Finds the current time each loop
   getTimes();
+
+  rButton = analogRead(pButtons);
 
   //Check for expired manual Override
   if( manualOverride == 1 ) {
@@ -124,10 +143,10 @@ void getTimes(){
   currentTime = convertTime(currentEpochTime);
 }
 
-uint16_t convertTime(uint32_t testTime){
+uint16_t convertTime(uint32_t testTime1){
   //Converts Epoch to HHMM
   uint16_t returnTime;
-  returnTime = Time.hour(testTime) * 100 + Time.minute(testTime);
+  returnTime = Time.hour(testTime1) * 100 + Time.minute(testTime1);
   return returnTime;
 }
 
@@ -230,7 +249,7 @@ void setPumpSpeed() {
           digitalWrite(pPumpRelay2, HIGH);
           digitalWrite(pPumpRelay3, HIGH);
           break;
-  //This condition should never happen, but default to Speed 1 if it does
+	//This condition should never happen, but default to Speed 1 if it does
         default:
           digitalWrite(pPumpRelay1, LOW );
           digitalWrite(pPumpRelay2, LOW );
@@ -260,26 +279,33 @@ int mOverride(String command) { //Triggered by SmartThings
 }
 
 void returnToSchedule() {
+  scheduledSpeed = 0;
   uint32_t testTimeEpoch = currentEpochTime;
   uint16_t testTime;
   while( scheduledSpeed == 0 ) {
-  testTime = convertTime(testTimeEpoch);
+	testTime = convertTime(testTimeEpoch);
     scheduledSpeed = findScheduledSpeed(testTime);
-    testTimeEpoch--;
+
+    testTimeEpoch-=60;
   }
+  oled.print ("SUCCESS! ");
+  oled.print("Speed: ");
+  oled.println(scheduledSpeed);
+  oled.display();
   manualOverride = 0;
   overrideSpeed = 0;
   overrideStarted = 0;
+  delay(2000);
 }
 
 void trackEnergy(){
   if (currentTime != previousTime) {
     if (currentTime == 0) {
-    sprintf(publishString, "%.5f", WhTally); //  Convert double WhTally to char[40] for Particle.publish()
-    Particle.publish("24Hr_kWh", publishString);
-    WhTally = 0;
+		sprintf(publishString, "%.5f", WhTally); //  Convert double WhTally to char[40] for Particle.publish()
+		Particle.publish("24Hr_kWh", publishString);
+		WhTally = 0;
     }
-  WhTally += (double) ( energyConsum[currentSpeed-1] / 60 ); //Add 1 minute worth of kWh
+	WhTally += (double) ( energyConsum[currentSpeed-1] / 60 ); //Add 1 minute worth of kWh
     previousTime = currentTime;
   }
 }
@@ -301,6 +327,10 @@ void updateDisplay(){ //128x64
   oled.println(currentTime);
   oled.print("Wh: ");
   oled.println(WhTally);
+  oled.print("Scheduled: ");
+  oled.println(scheduledSpeed);
+  oled.println("rButton: ");
+  oled.println(rButton);
   if( manualOverride ) {
     oled.println("MANUAL OVERRIDE:");
     oled.print("Spd: ");
