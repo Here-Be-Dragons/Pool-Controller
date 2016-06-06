@@ -58,7 +58,7 @@ uint16_t scheduledSpeed = 0;     //What speed the schedule says you should be at
 uint8_t autoOverride = 1;        //0 for scheduled, 1 for override.  Changes when solar kicks on
 uint8_t manualOverride = 0;      //0 for scheduled, 1 for override.  Changes via user intervention
 uint32_t overrideStarted = 0;    //This is set to currentEpochTime when a manual override is triggered
-uint32_t rButton = 0;
+uint32_t previousDataPublish;    //Webhook publish tracking
 
 // Assign pins to relays
 // D0 reserved for SDA of OLED
@@ -105,8 +105,6 @@ void loop() {
   //Finds the current time each loop
   getTimes();
 
-  rButton = analogRead(pButtons);
-
   //Check for expired manual Override
   if( manualOverride == 1 ) {
     uint32_t ovr = overrideStarted + overrideLength;
@@ -127,8 +125,8 @@ void loop() {
   //Update the oled display
   updateDisplay();
   
-  //Keep track of energy consumption
-  trackEnergy();
+  //Keep track of energy consumption and speed
+  trackData();
 }
 
 void getTimes(){
@@ -298,15 +296,23 @@ void returnToSchedule() {
   delay(2000);
 }
 
-void trackEnergy(){
+void trackData(){
   if (currentTime != previousTime) {
     if (currentTime == 0) {
-		sprintf(publishString, "%.5f", WhTally); //  Convert double WhTally to char[40] for Particle.publish()
-		Particle.publish("24Hr_kWh", publishString);
-		WhTally = 0;
+	  sprintf(publishString, "%.5f", WhTally); //  Convert double WhTally to char[40] for Particle.publish()
+	  Particle.publish("24Hr_kWh", publishString);
+	  WhTally = 0;
     }
 	WhTally += (double) ( energyConsum[currentSpeed-1] / 60 ); //Add 1 minute worth of kWh
     previousTime = currentTime;
+  }
+  if (previousDataPublish + 300 <= currentEpochTime) { // Only publish every 5 minutes
+    String sSpeed = String(speedRPM[currentSpeed - 1]);
+    //Particle.publish("speed", temp, PRIVATE);
+    String sWattage = String(energyConsum[currentSpeed - 1]);
+    //Particle.publish("wattage", temp, PRIVATE);
+    Particle.publish("speed", "{ \"1\": \"" + sSpeed + "\", \"2\": \"" + sWattage + "\" }", PRIVATE);
+    previousDataPublish = currentEpochTime;
   }
 }
 
@@ -329,8 +335,6 @@ void updateDisplay(){ //128x64
   oled.println(WhTally);
   oled.print("Scheduled: ");
   oled.println(scheduledSpeed);
-  oled.println("rButton: ");
-  oled.println(rButton);
   if( manualOverride ) {
     oled.println("MANUAL OVERRIDE:");
     oled.print("Spd: ");
