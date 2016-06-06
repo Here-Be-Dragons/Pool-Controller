@@ -29,71 +29,16 @@ The Hayward Tristar VS pool pump has a “third party controls” function that 
 
 ![Alt text](/images/Tristar_VS_Relay_Wiring.png?raw=true "Pool Pump Diagram")
 
-<table>
-<colgroup>
-<col width="25%" />
-<col width="25%" />
-<col width="25%" />
-<col width="25%" />
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><p><span class="c5">Timer Speed</span></p></td>
-<td><p><span class="c5">STEP 1 Status</span></p></td>
-<td><p><span class="c5">STEP 2 Status</span></p></td>
-<td><p><span class="c5">STEP 3 Status</span></p></td>
-</tr>
-<tr class="even">
-<td><p><span class="c5">1</span></p></td>
-<td><p><span class="c5">OFF</span></p></td>
-<td><p><span class="c5">OFF</span></p></td>
-<td><p><span class="c5">OFF</span></p></td>
-</tr>
-<tr class="odd">
-<td><p><span class="c5">2</span></p></td>
-<td><p><span class="c5">ON</span></p></td>
-<td><p><span class="c5">OFF</span></p></td>
-<td><p><span class="c5">OFF</span></p></td>
-</tr>
-<tr class="even">
-<td><p><span class="c5">3</span></p></td>
-<td><p><span class="c5">OFF</span></p></td>
-<td><p><span class="c5">ON</span></p></td>
-<td><p><span class="c5">OFF</span></p></td>
-</tr>
-<tr class="odd">
-<td><p><span class="c5">4</span></p></td>
-<td><p><span class="c5">ON</span></p></td>
-<td><p><span class="c5">ON</span></p></td>
-<td><p><span class="c5">OFF</span></p></td>
-</tr>
-<tr class="even">
-<td><p><span class="c5">5</span></p></td>
-<td><p><span class="c5">OFF</span></p></td>
-<td><p><span class="c5">OFF</span></p></td>
-<td><p><span class="c5">ON</span></p></td>
-</tr>
-<tr class="odd">
-<td><p><span class="c5">6</span></p></td>
-<td><p><span class="c5">ON</span></p></td>
-<td><p><span class="c5">OFF</span></p></td>
-<td><p><span class="c5">ON</span></p></td>
-</tr>
-<tr class="even">
-<td><p><span class="c5">7</span></p></td>
-<td><p><span class="c5">OFF</span></p></td>
-<td><p><span class="c5">ON</span></p></td>
-<td><p><span class="c5">ON</span></p></td>
-</tr>
-<tr class="odd">
-<td><p><span class="c5">8</span></p></td>
-<td><p><span class="c5">ON</span></p></td>
-<td><p><span class="c5">ON</span></p></td>
-<td><p><span class="c5">ON</span></p></td>
-</tr>
-</tbody>
-</table>
-
+| Timer Speed | STEP 1 Status | Step 2 Status | Step 3 Status |
+| ----------- | ------------- | ------------- | ------------- |
+| 1           | OFF           | OFF           | OFF           |
+| 2           | ON            | OFF           | OFF           |
+| 3           | OFF           | ON            | OFF           |
+| 4           | ON            | ON            | OFF           |
+| 5           | OFF           | OFF           | ON            |
+| 6           | ON            | OFF           | ON            |
+| 7           | OFF           | ON            | ON            |
+| 8           | ON            | ON            | ON            |
 
 The STEP inputs have very wide allowed voltages per the User Manual:
 > Inputs are rated to accept a low voltage supply of 18-30VAC (24VAC+/-20%) or 9-30VDC (12/24VDC +/-20%).
