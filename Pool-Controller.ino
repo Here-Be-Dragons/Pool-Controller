@@ -24,6 +24,9 @@ uint16_t speedRPM[8] = {0,600,1200,1800,2300,2750,3000,3450};
 // energy usage (Watts) below for accurate consumption tracking
 uint16_t energyConsum[8] = {5,100,200,400,800,1100,1400,1700};
 
+// Estimate total gallons of flow per minute
+uint16_t flowCalc[8] = {0,18,35,53,68,81,88,102};
+
 // How long (in seconds) to run manual Overrides
 uint16_t overrideLength = 3600;
 
@@ -32,15 +35,15 @@ int16_t timeZone = -5;
 
 // Speed activation times in HHMM format. If two speeds have the same
 // time entered, the higher speed takes precidence.  Leave off any
-// zeros before the first non-zero number
-uint16_t aSpeed1[] = {0,                  2100};
-uint16_t aSpeed2[] = {                        };
-uint16_t aSpeed3[] = { 600,   1200,   1500    };
-uint16_t aSpeed4[] = {                        };
-uint16_t aSpeed5[] = {                        };
-uint16_t aSpeed6[] = {    1100,   1300        };
-uint16_t aSpeed7[] = {                        };
-uint16_t aSpeed8[] = {                        };
+// preceeding zeros, as they will prevent a proper match.
+uint16_t aSpeed1[] = {0,                 2100};
+uint16_t aSpeed2[] = {                       };
+uint16_t aSpeed3[] = { 600,          1600    };
+uint16_t aSpeed4[] = {    800,   1400        };
+uint16_t aSpeed5[] = {       1100            };
+uint16_t aSpeed6[] = {                       };
+uint16_t aSpeed7[] = {                       };
+uint16_t aSpeed8[] = {                       };
 
 ////
 //End of user configurations
@@ -308,10 +311,11 @@ void trackData(){
   }
   if (previousDataPublish + 300 <= currentEpochTime) { // Only publish every 5 minutes
     String sSpeed = String(speedRPM[currentSpeed - 1]);
-    //Particle.publish("speed", temp, PRIVATE);
     String sWattage = String(energyConsum[currentSpeed - 1]);
-    //Particle.publish("wattage", temp, PRIVATE);
-    Particle.publish("speed", "{ \"1\": \"" + sSpeed + "\", \"2\": \"" + sWattage + "\" }", PRIVATE);
+    String sFlow = String(flowCalc[currentSpeed - 1]);
+    String sSolar = String(autoOverride);
+    
+    Particle.publish("poolLog", "{ \"1\": \"" + sSpeed + "\", \"2\": \"" + sWattage + "\", \"3\": \"" + sFlow + "\", \"4\": \"" + sSolar + "\" }", PRIVATE);
     previousDataPublish = currentEpochTime;
   }
 }
