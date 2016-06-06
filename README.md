@@ -20,9 +20,11 @@ Code requirements:
 -   Interruptible via buttons+display at controller and/or via phone app (SmartThings)
 -   Automatic schedule recovery after a power outage
 -   Automatic speed for Solar heater  
+
 The Hayward Tristar VS pool pump has a “third party controls” function that allows you to request a speed based on a combination of 3 relays.  Additionally, the Hayward GL-235 has a relay intended to to trigger a booster pump.  Using both of these facts:  
 
 ![Alt text](/images/Tristar_VS_Relay_Wiring.png?raw=true "Pool Pump Diagram")
+
 | Timer Speed | STEP 1 Status | Step 2 Status | Step 3 Status |
 | ----------- | ------------- | ------------- | ------------- |
 | 1           | OFF           | OFF           | OFF           |
@@ -33,8 +35,10 @@ The Hayward Tristar VS pool pump has a “third party controls” function that 
 | 6           | ON            | OFF           | ON            |
 | 7           | OFF           | ON            | ON            |
 | 8           | ON            | ON            | ON            |
+
 The STEP inputs have very wide allowed voltages per the User Manual:
 > Inputs are rated to accept a low voltage supply of 18-30VAC (24VAC+/-20%) or 9-30VDC (12/24VDC +/-20%).
+
 Hayward recommends taking power from +12V output to pump controller on RS485 connection as relay source power. "ICOM" (ground) would be jumpered to COM on RS485, so 4-wire connection to the Particle Photon would be:
 1.  +12VDC (RS485) &lt;= (White wire) =&gt; Relay inputs
 2.  STEP 1 (Relay) &lt;= (Blue wire) =&gt; Relay output
@@ -52,6 +56,7 @@ Lastly, every 5 minutes I output 4 separate metrics via a JSON Webhook to ThingS
 -   Wattage
 -   Flow
 -   Solar activity
+
 The first 3 of these are reliant on correct information entered into the top of the Photon’s code.
 
 ### Parts:
