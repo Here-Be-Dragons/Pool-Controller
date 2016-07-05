@@ -36,8 +36,8 @@ int16_t timeZone = -5;
 // Speed activation times in HHMM format. If two speeds have the same
 // time entered, the higher speed takes precidence.  Leave off any
 // preceeding zeros, as they will prevent a proper match.
-uint16_t aSpeed1[] = {0,                 2100};
-uint16_t aSpeed2[] = {                       };
+uint16_t aSpeed1[] = {                       };
+uint16_t aSpeed2[] = {0,                 2100};
 uint16_t aSpeed3[] = { 600,          1600    };
 uint16_t aSpeed4[] = {    800,   1400        };
 uint16_t aSpeed5[] = {       1100            };
