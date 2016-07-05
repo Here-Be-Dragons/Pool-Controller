@@ -80,3 +80,8 @@ The first 3 of these are reliant on correct information entered into the top of 
 -------------------------
 **GL-235 Specifics:**  
 Do not use the relay on the right side, instead use the one designed for starting a booster pump.  The one on the right side injects 20VAC into the line.
+
+**Data Tracking:**
+I have data tracked/graphed using the following:
+-   ThingSpeak: Particle Webhook -> ThingSpeak
+-   Google Documents: Particle Webhook -> IFTTT -> Google Drive
