@@ -309,7 +309,7 @@ void trackData(){
 	WhTally += (double) ( energyConsum[currentSpeed-1] / 60 ); //Add 1 minute worth of kWh
     previousTime = currentTime;
   }
-  if (previousDataPublish + 300 <= currentEpochTime) { // Only publish every 5 minutes
+  if (previousDataPublish + 300 <= currentEpochTime) { // Publish to thingspeak channel every 5 minutes
     String sSpeed = String(speedRPM[currentSpeed - 1]);
     String sWattage = String(energyConsum[currentSpeed - 1]);
     String sFlow = String(flowCalc[currentSpeed - 1]);
