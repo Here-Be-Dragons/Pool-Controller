@@ -49,11 +49,12 @@ uint16_t aSpeed8[] = {                       };
 //End of user configurations
 ////
 
-time_t currentEpochTime = 0;         //The current Epoch time set at the beginning of each loop in getTimes()
-uint16_t currentTime = 0;			 //Friendly time converted from currentEpochTime via convertTime(), 10:00 PM is referenced as 2200
-uint16_t previousTime = 0;			 //The time as of the last loop, set at the bottom of loop()
-double WhTally = 0;			     //Daily count of Wh consumption, to upload to Google Docs for tracking
-char publishString[40];			 //Temporary string to use for Particle.publish of WhTally
+time_t currentEpochTime = 0;     //The current Epoch time set at the beginning of each loop in getTimes()
+uint16_t currentTime = 0;	 //Friendly time converted from currentEpochTime via convertTime(), 10:00 PM is referenced as 2200
+uint16_t previousTime = 0;	 //The time as of the last loop, set at the bottom of loop()
+double WhTally = 0;              //Daily count of Wh consumption, to upload to Google Docs for tracking
+double gallonTally = 0;          //Daily count of Gallons pumped, to upload to Google Docs for tracking
+char publishString[40];		 //Temporary string to use for Particle.publish of WhTally
 uint16_t currentSpeed = 0;       //The current motor speed setting number (1-8)
 uint16_t overrideSpeed;          //Stores the override speed when set manually
 //uint16_t lastChange;           //Time the speed was last changed via scheduler (not currently used)
@@ -302,11 +303,15 @@ void returnToSchedule() {
 void trackData(){
   if (currentTime != previousTime) {
     if (currentTime == 0) {
-	  sprintf(publishString, "%.5f", WhTally); //  Convert double WhTally to char[40] for Particle.publish()
+	  sprintf(publishString, "%.5f", WhTally);     // Convert double WhTally to char[40] for Particle.publish()
 	  Particle.publish("24Hr_kWh", publishString);
+          sprintf(publishString, "%.5f", gallonTally); // Convert double gallonTally to char[40] for Particle.publish()
+          Particle.publish("24Hr_gal", publishString); 
 	  WhTally = 0;
+          gallonTally = 0;
     }
-	WhTally += (double) ( energyConsum[currentSpeed-1] / 60 ); //Add 1 minute worth of kWh
+    WhTally += (double) ( energyConsum[currentSpeed-1] / 60 ); // Add 1 minute worth of kWh
+    gallonTally += (double) ( flowCalc[currentSpeed-1] );      // Add 1 minute worth of water flow
     previousTime = currentTime;
   }
   if (previousDataPublish + 300 <= currentEpochTime) { // Publish to thingspeak channel every 5 minutes
