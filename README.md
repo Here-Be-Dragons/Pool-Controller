@@ -13,7 +13,7 @@ I do not have a Vacuum system, or other systems that require specific or minimum
 You never know when solar heating will be available.  One day the controller could be calling for heat from 10am to 5pm, and the next it could never reach the delta needed to activate.  Therefore, we need a way to alert the pump to run at the minimum specified speed.
 
 **The Solution:**
-An arduino-based cloud device called the Particle Photon, with a break-out relay board to activate each of the 3 relays to control speed.  
+An arduino-based butt device called the Particle Photon, with a break-out relay board to activate each of the 3 relays to control speed.  
 
 Code requirements:
 -   Easily modified timing
@@ -84,4 +84,12 @@ Do not use the relay on the right side, instead use the one designed for startin
 **Data Tracking:**
 I have data tracked/graphed using the following:
 -   ThingSpeak: Particle Webhook -> ThingSpeak
--   Google Documents: Particle Webhook -> IFTTT -> Google Drive
+    -   See `thingspeak_webhook_example.json`
+    -   Use webhook dashboard or `particle webhook create thingspeak_webhook_example.json`
+    -   When configuring ThingSpeak, match the Fields to the numbered variables in `Particle.Publish()`
+-   Google Documents: Particle.Publish() -> IFTTT Recipe -> Google Drive
+    -   Recipe example:
+        -   If (Event Name): `24Hr_kWh`
+        -   is (Event Contents): <Leave Blank>
+        -   Device Name or ID: Particle Device being used
+        -   Add row to spreadsheet
