@@ -17,19 +17,18 @@
 
 
 metadata {
-	definition (name: "Hayward Tristar VS Controller", namespace: "Here-Be-Dragons", author: "Jerad Jacob") {
-		capability "Actuator" //Best practice to include if it has commands
+        definition (name: "Hayward Tristar VS Controller", namespace: "Here-Be-Dragons", author: "Jerad Jacob") {
+        capability "Actuator" //Best practice to include if it has commands
         capability "Sensor" //Best practice to include if it has attributes
         capability "Polling"
         capability "Refresh"
         capability "Relay Switch"
-        
-        command "sendCommand", ["number"]
-	}
 
-	simulator {
-		
-	}
+        command "sendCommand", ["number"]
+        }
+
+        simulator {	
+        }
     
     preferences {
         input("deviceId", "text", title: "Device ID", description: "Particle Device ID", required: false, displayDuringSetup: true)
@@ -45,7 +44,7 @@ metadata {
 		}
 		standardTile("off", "device.setSpeed", decoration: "flat", width: 3, height: 1) {
 			state "inactive", label: 'OFF', action:"sendCommand", nextState: "active"
-            state "active", label: 'OFF', action:"sendCommand", nextState: "inactive", backgroundColor:"#00FF00"
+		state "active", label: 'OFF', action:"sendCommand", nextState: "inactive", backgroundColor:"#00FF00"
 		}
 		standardTile("speed2", "device.setSpeed", decoration: "flat", width: 3, height: 1) {
 			state("inactive", action:"sendCommand",  label:'600')
@@ -85,11 +84,11 @@ metadata {
 		main ("icon")   
 		details([
 		"currentSpeed",	"refresh",
-						"resume",
-		"off",			"speed2",
-		"speed3", 		"speed4",
-		"speed5", 		"speed6",
-		"speed7", 		"speed8"
+		                "resume",
+		"off",          "speed2",
+		"speed3",       "speed4",
+		"speed5",       "speed6",
+		"speed7",       "speed8"
 		])
 	}
 }
