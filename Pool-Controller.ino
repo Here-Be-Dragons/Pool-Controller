@@ -354,7 +354,7 @@ void updateDisplay(){ //128x64
         oled.print("Spd: ");
         oled.println(overrideSpeed);
         oled.print("Timer: ");
-        oled.println(overrideStarted + overrideLength - currentEpochTime);
+        oled.println(overrideEnds - currentEpochTime);
     }
     if( autoOverride ) oled.println("AUTO OVERRIDE");
     oled.display();
