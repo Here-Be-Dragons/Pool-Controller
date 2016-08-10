@@ -36,14 +36,14 @@ int16_t timeZone = -5;
 // Speed activation times in HHMM format. If two speeds have the same
 // time entered, the higher speed takes precidence.  Leave off any
 // preceeding zeros, as they will prevent a proper match.
-uint16_t aSpeed1[] = {                       };
-uint16_t aSpeed2[] = {0,                 2100};
-uint16_t aSpeed3[] = { 600,          1600    };
-uint16_t aSpeed4[] = {    800,   1400        };
-uint16_t aSpeed5[] = {       1100            };
-uint16_t aSpeed6[] = {                       };
-uint16_t aSpeed7[] = {                       };
-uint16_t aSpeed8[] = {                       };
+uint16_t aSpeed1[] = {0,                  1900}; //    0 RPM
+uint16_t aSpeed2[] = {                        }; //  600 RPM
+uint16_t aSpeed3[] = { 900,   1100,   1400    }; // 1200 RPM
+uint16_t aSpeed4[] = {                        }; // 1800 RPM
+uint16_t aSpeed5[] = {                        }; // 2300 RPM
+uint16_t aSpeed6[] = {    1000,   1300        }; // 2750 RPM
+uint16_t aSpeed7[] = {                        }; // 3000 RPM
+uint16_t aSpeed8[] = {                        }; // 3450 RPM
 
 ////
 //End of user configurations
