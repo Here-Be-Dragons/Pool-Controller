@@ -49,6 +49,10 @@ uint16_t aSpeed8[] = {                        }; // 3450 RPM
 //End of user configurations
 ////
 
+// This value persists permanently on the Photon even after flashes/reboots
+STARTUP(WiFi.selectAntenna(ANT_EXTERNAL)); // Use external antenna
+//STARTUP(WiFi.selectAntenna(ANT_INTERNAL)); // Use internal antenna
+
 time_t currentEpochTime = 0;     //The current Epoch time set at the beginning of each loop in getTimes()
 uint16_t currentTime = 0;        //Friendly time converted from currentEpochTime via convertTime(), 10:00 PM is referenced as 2200
 uint16_t previousTime = 0;       //The time as of the last loop, set at the bottom of loop()
@@ -83,11 +87,11 @@ void setup() {
     pinMode(pPumpRelay2,  OUTPUT);
     pinMode(pPumpRelay3,  OUTPUT);
     pinMode(pSolarRelay1, INPUT); // Solar panel on pulls this down to ground.  Need INPUT_PULLUP for inactive relay, else it would float
-    pinMode(pButtons, INPUT);
+    pinMode(pButtons,     INPUT);
 
     oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);    // Initialize with the I2C addr 0x3D (for the 128x64 screen)
     
-    for (int x = 30; x >= 0; x--){                   // Give it x seconds to stabilize the RTC and get a time from NTP
+    for (int x = 10; x >= 0; x--){                   // Give it x seconds to stabilize the RTC and get a time from NTP
         oled.clearDisplay();                       // Clear Screen
         oled.drawRect(0,0,128,64, WHITE);
         oled.drawRect(1,1,127,63, WHITE);
@@ -264,8 +268,8 @@ void setPumpSpeed() {
 }
 
 int mOverride(String command) { //Triggered by SmartThings
-    char strBuffer[40] = "";
-    command.toCharArray(strBuffer, 40);
+    char strBuffer[63] = ""; //Max length of the Function String is 63 characters
+    command.toCharArray(strBuffer, 63);
     overrideSpeed = atoi(strtok(strBuffer, "~"));
     overrideLength = atoi(strtok(NULL, "~"));
     if( overrideSpeed <= 8 && overrideSpeed >= 1 ){ //These are direct speeds
