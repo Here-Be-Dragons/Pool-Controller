@@ -27,8 +27,8 @@ uint16_t energyConsum[8] = {5,100,200,400,800,1100,1400,1700};
 // Estimate total gallons of flow per minute
 uint16_t flowCalc[8] = {0,18,35,53,68,81,88,102};
 
-// How long (in seconds) to run manual Overrides
-uint16_t overrideLength = 3600;
+// Default length (in seconds) to run manual Overrides
+uint16_t defaultOverride = 3600;
 
 // Time Zone offset
 int16_t timeZone = -5;
@@ -61,7 +61,9 @@ uint16_t overrideSpeed;          //Stores the override speed when set manually
 uint16_t scheduledSpeed = 0;     //What speed the schedule says you should be at
 uint8_t autoOverride = 1;        //0 for scheduled, 1 for override.  Changes when solar kicks on
 uint8_t manualOverride = 0;      //0 for scheduled, 1 for override.  Changes via user intervention
-uint32_t overrideStarted = 0;    //This is set to currentEpochTime when a manual override is triggered
+uint32_t overrideStarted;	 //This is set to currentEpochTime when a manual override is triggered
+uint32_t overrideEnds = 0;       //This is set to currentEpochTime + overrideLength when a manual override is triggered
+uint32_t overrideLength = 0;     //Recieved override length in seconds.
 uint32_t previousDataPublish;    //Webhook publish tracking
 
 // Assign pins to relays
@@ -101,7 +103,7 @@ void setup() {
         delay(1000);
     }
     Particle.function("mOverride", mOverride); // Listen for a manual override via remote user input
-    getTimes();								   // Set up initial times
+    getTimes();	                               // Set up initial times
     returnToSchedule();                        // Find what the current speed should be
 }
 
@@ -111,11 +113,10 @@ void loop() {
 
     //Check for expired manual Override
     if( manualOverride == 1 ) {
-        uint32_t ovr = overrideStarted + overrideLength;
-    if (ovr <= currentEpochTime) {
-        returnToSchedule();
+        if (overrideEnds <= currentEpochTime) {
+            returnToSchedule();
+        }
     }
-}
 
     //Check for new scheduled speed
     scheduledSpeed = findScheduledSpeed(currentTime);
@@ -263,19 +264,26 @@ void setPumpSpeed() {
 }
 
 int mOverride(String command) { //Triggered by SmartThings
-    overrideSpeed = atoi(command); //Convert string to integer
-    if( overrideSpeed <= 8 ){ //These are direct speeds
+    char strBuffer[40] = "";
+    command.toCharArray(strBuffer, 40);
+    overrideSpeed = atoi(strtok(strBuffer, "~"));
+    overrideLength = atoi(strtok(NULL, "~"));
+    if( overrideSpeed <= 8 && overrideSpeed >= 1 ){ //These are direct speeds
         manualOverride = 1;
         overrideStarted = currentEpochTime;
-        setPumpSpeed();
-    } else {
-        if( overrideSpeed == 9 ){ //9 is "return to schedule"
-            manualOverride = 0;
-            returnToSchedule();
-        } else if( overrideSpeed == 10){ //10 is a poll for current speed, no changes
-        //Just a poll, no changes
+        if( overrideLength == 0 ){ //Use default override length
+            overrideEnds = currentEpochTime + defaultOverride;
+        }else{
+            overrideEnds = currentEpochTime + overrideLength;
         }
+        setPumpSpeed();
+    } else if( overrideSpeed == 9 ){ //9 is a "return to schedule"
+        manualOverride = 0;
+        returnToSchedule();
+    } else { //10 or any other value is a poll for current speed, no changes
+        //Just a poll, no changes
     }
+    overrideLength = 0; //Reset overrideLength
     return speedRPM[currentSpeed-1];
 }
 
