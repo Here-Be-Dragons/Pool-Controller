@@ -1,5 +1,6 @@
 # Automated Pool Controller
 ###### Timer Control of a Hayward Tristar VS Pump and Hayward GL-235 Solar Pool Controller
+![Alt text](/images/pool_controller_1.png?raw=true "Finished Pool Controller")
 ### Overview
 ---------------------
 **Background:**
