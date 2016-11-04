@@ -69,6 +69,10 @@ uint32_t overrideStarted;	 //This is set to currentEpochTime when a manual overr
 uint32_t overrideEnds = 0;       //This is set to currentEpochTime + overrideLength when a manual override is triggered
 uint32_t overrideLength = 0;     //Recieved override length in seconds.
 uint32_t previousDataPublish;    //Webhook publish tracking
+String sSpeed;
+String sWattage;
+String sFlow;
+String sSolar;
 
 // Assign pins to relays
 // D0 reserved for SDA of OLED
@@ -83,6 +87,7 @@ uint32_t previousDataPublish;    //Webhook publish tracking
 Adafruit_SSD1306 oled(OLED_RESET);
 
 void setup() {
+    
     pinMode(pPumpRelay1,  OUTPUT);
     pinMode(pPumpRelay2,  OUTPUT);
     pinMode(pPumpRelay3,  OUTPUT);
@@ -90,8 +95,12 @@ void setup() {
     pinMode(pButtons,     INPUT);
 
     oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);    // Initialize with the I2C addr 0x3D (for the 128x64 screen)
-    
-    for (int x = 10; x >= 0; x--){                   // Give it x seconds to stabilize the RTC and get a time from NTP
+    Particle.function("mOverride", mOverride); // Listen for a manual override via remote user input
+    Particle.variable("pumpSpeed", sSpeed);
+    Particle.variable("pumpWattage", sWattage);
+    Particle.variable("waterFlow", sFlow);
+    Particle.variable("solarAct", sSolar);
+    for (int x = 3; x >= 0; x--){                   // Give it x seconds to stabilize the RTC and get a time from NTP
         oled.clearDisplay();                       // Clear Screen
         oled.drawRect(0,0,128,64, WHITE);
         oled.drawRect(1,1,127,63, WHITE);
@@ -106,7 +115,7 @@ void setup() {
         oled.display();
         delay(1000);
     }
-    Particle.function("mOverride", mOverride); // Listen for a manual override via remote user input
+    
     getTimes();	                               // Set up initial times
     returnToSchedule();                        // Find what the current speed should be
 }
@@ -287,6 +296,11 @@ int mOverride(String command) { //Triggered by SmartThings
     } else { //10 or any other value is a poll for current speed, no changes
         //Just a poll, no changes
     }
+    // DEBUG
+    String sSpeedRecieved = String(overrideSpeed);
+    String sTimeRecieved = String(overrideLength);
+    Particle.publish("Speed_Recieved", sSpeedRecieved + "~" + sTimeRecieved);
+    // END DEBUG
     overrideLength = 0; //Reset overrideLength
     return speedRPM[currentSpeed-1];
 }
@@ -325,10 +339,10 @@ void trackData(){
         previousTime = currentTime;
     }
     if (previousDataPublish + 300 <= currentEpochTime) { // Publish to thingspeak channel every 5 minutes
-        String sSpeed = String(speedRPM[currentSpeed - 1]);
-        String sWattage = String(energyConsum[currentSpeed - 1]);
-        String sFlow = String(flowCalc[currentSpeed - 1]);
-        String sSolar = String(autoOverride);
+        sSpeed = String(speedRPM[currentSpeed - 1]);
+        sWattage = String(energyConsum[currentSpeed - 1]);
+        sFlow = String(flowCalc[currentSpeed - 1]);
+        sSolar = String(autoOverride);
         Particle.publish("poolLog", "{ \"1\": \"" + sSpeed + "\", \"2\": \"" + sWattage + "\", \"3\": \"" + sFlow + "\", \"4\": \"" + sSolar + "\" }", PRIVATE);
         previousDataPublish = currentEpochTime;
     }
