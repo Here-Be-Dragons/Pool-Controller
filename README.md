@@ -1,6 +1,7 @@
 # Automated Pool Controller
 ###### Timer Control of a Hayward Tristar VS Pump and Hayward GL-235 Solar Pool Controller
-![Alt text](/images/pool_controller_1.png?raw=true "Finished Pool Controller")
+![Alt text](/images/pool_controller_1.png?raw=true "Finished Pool Controller")  
+![Alt text](/images/grafana.jpg?raw=true "Grafana Dashboard")
 ### Overview
 ---------------------
 **Background:**
@@ -84,10 +85,12 @@ Do not use the relay on the right side, instead use the one designed for startin
 
 **Data Tracking:**
 I have data tracked/graphed using the following:
--   ThingSpeak: Particle Webhook -> ThingSpeak
-    -   See `thingspeak_webhook_example.json`
-    -   Use webhook dashboard or `particle webhook create thingspeak_webhook_example.json`
-    -   When configuring ThingSpeak, match the Fields to the numbered variables in `Particle.Publish()`
+-   Grafana + InfluxDB + Collectd:
+    -   Collectd uses the `curl_json` plugin to query the `pumpSpeed`, `pumpWattage`, `waterFlow`, `solarAct`, and `override` variables
+    -   Collectd uses the `network` plugin to output the results to an InfluxDB TSD
+    -   Grafana displays the results on a dashboard.
+    -   This requires a Linux device running somewhere.  It does not need to have any ports accessible to the internet since it is pulling the data.
+    -   See collectd/pool-controller.conf and grafana/pool-controller.json for relevant examples 
 -   Google Documents: Particle.Publish() -> IFTTT Recipe -> Google Drive
     -   Recipe example:
         -   If (Event Name): `24Hr_kWh`
