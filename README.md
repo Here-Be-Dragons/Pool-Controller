@@ -90,10 +90,11 @@ I have data tracked/graphed using the following:
     -   Collectd uses the `network` plugin to output the results to an InfluxDB TSD
     -   Grafana displays the results on a dashboard.
     -   This requires a Linux device running somewhere.  It does not need to have any ports accessible to the internet since it is pulling the data.
-    -   See collectd/pool-controller.conf and grafana/pool-controller.json for relevant examples 
+    -   See collectd/pool-controller.conf and grafana/pool-controller.json for relevant configuration examples.
 -   Google Documents: Particle.Publish() -> IFTTT Recipe -> Google Drive
     -   Recipe example:
         -   If (Event Name): `24Hr_kWh`
         -   is (Event Contents): <Leave Blank>
         -   Device Name or ID: Particle Device being used
         -   Add row to spreadsheet
+    -   This is done to track daily power usage and daily gallons pumped.
