@@ -64,10 +64,11 @@ The first 3 of these are reliant on correct information entered into the top of 
 ### Parts:
 -------------------
 -   5v-controlled relay with at least 3 separate relay ports (something like SainSmart 4-Channel Relay Module, <http://www.amazon.com/SainSmart-101-70-101-4-Channel-Relay-Module/dp/B0057OC5O8>)
--   Particle Photon (<https://www.adafruit.com/product/2721>)
+-   Particle Photon
 -   22AWG 4/C 300v wire (Connected to Pump)
 -   22AWG 2/C 300v wire (Connected to Solar Controller)
 -   0.96" 128x64 SPI/I<sup>2</sup>C OLED Display Module for Arduino (aliexpress.com)
+-   Custom printed PCB from Osh Park: https://oshpark.com/shared_projects/12k2QJzh
 
 ### Configuration of Script:
 -------------------------------------
