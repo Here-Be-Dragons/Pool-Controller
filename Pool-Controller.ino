@@ -4,8 +4,6 @@
 // Refer to README.md for additional information
 // https://github.com/Here-Be-Dragons/Pool-Controller
 
-// TODO: Fix SmartThings override
-
 ////
 //Start of user configurations
 ////
@@ -24,10 +22,11 @@ uint16_t speedRPM[8] = {0,600,1200,1800,2300,2750,3000,3450};
 // energy usage (Watts) below for accurate consumption tracking
 uint16_t energyConsum[8] = {5,100,200,400,800,1100,1400,1700};
 
-// Estimate total gallons of flow per minute
+// Estimate total gallons of flow per minute for each speed
 uint16_t flowCalc[8] = {0,18,35,53,68,81,88,102};
 
 // Default length (in seconds) to run manual Overrides
+// Applied if no time is specified in override
 uint16_t defaultOverride = 3600;
 
 // Time Zone offset
@@ -36,6 +35,24 @@ int16_t timeZone = -5;
 // Speed activation times in HHMM format. If two speeds have the same
 // time entered, the higher speed takes precidence.  Leave off any
 // preceeding zeros, as they will prevent a proper match.
+
+/*
+/////
+//Winter Schedule
+/////
+uint16_t aSpeed1[] = {0,                  1700}; //    0 RPM
+uint16_t aSpeed2[] = {                        }; //  600 RPM
+uint16_t aSpeed3[] = { 900,   1100,   1400    }; // 1200 RPM
+uint16_t aSpeed4[] = {                        }; // 1800 RPM
+uint16_t aSpeed5[] = {                        }; // 2300 RPM
+uint16_t aSpeed6[] = {    1000,   1300        }; // 2750 RPM
+uint16_t aSpeed7[] = {                        }; // 3000 RPM
+uint16_t aSpeed8[] = {                        }; // 3450 RPM
+*/
+
+/////
+//Summer Schedule
+/////
 uint16_t aSpeed1[] = {0,                  1900}; //    0 RPM
 uint16_t aSpeed2[] = {                        }; //  600 RPM
 uint16_t aSpeed3[] = { 900,   1100,   1400    }; // 1200 RPM
@@ -45,6 +62,7 @@ uint16_t aSpeed6[] = {    1000,   1300        }; // 2750 RPM
 uint16_t aSpeed7[] = {                        }; // 3000 RPM
 uint16_t aSpeed8[] = {                        }; // 3450 RPM
 
+
 ////
 //End of user configurations
 ////
@@ -53,46 +71,63 @@ uint16_t aSpeed8[] = {                        }; // 3450 RPM
 STARTUP(WiFi.selectAntenna(ANT_EXTERNAL)); // Use external antenna
 //STARTUP(WiFi.selectAntenna(ANT_INTERNAL)); // Use internal antenna
 
-time_t currentEpochTime = 0;     //The current Epoch time set at the beginning of each loop in getTimes()
-uint16_t currentTime = 0;        //Friendly time converted from currentEpochTime via convertTime(), 10:00 PM is referenced as 2200
-uint16_t previousTime = 0;       //The time as of the last loop, set at the bottom of loop()
-double WhTally = 0;              //Daily count of Wh consumption, to upload to Google Docs for tracking
-double gallonTally = 0;          //Daily count of Gallons pumped, to upload to Google Docs for tracking
-char publishString[40];          //Temporary string to use for Particle.publish of WhTally
-uint16_t currentSpeed = 0;       //The current motor speed setting number (1-8)
-uint16_t overrideSpeed;          //Stores the override speed when set manually
-//uint16_t lastChange;           //Time the speed was last changed via scheduler (not currently used)
-uint16_t scheduledSpeed = 0;     //What speed the schedule says you should be at
-uint8_t autoOverride = 1;        //0 for scheduled, 1 for override.  Changes when solar kicks on
-uint8_t manualOverride = 0;      //0 for scheduled, 1 for override.  Changes via user intervention
-uint32_t overrideStarted;	 //This is set to currentEpochTime when a manual override is triggered
-uint32_t overrideEnds = 0;       //This is set to currentEpochTime + overrideLength when a manual override is triggered
-uint32_t overrideLength = 0;     //Recieved override length in seconds.
-uint32_t previousDataPublish;    //Webhook publish tracking
+time_t currentEpochTime = 0;    //The current Epoch time set at the beginning of each loop in getTimes()
+uint16_t currentTime = 0;       //Friendly time converted from currentEpochTime via convertTime(), 10:00 PM is referenced as 2200
+uint16_t previousTime = 0;      //The time as of the last loop, set at the bottom of loop()
+double WhTally = 0;             //Daily count of Wh consumption, to upload to Google Docs for tracking
+double gallonTally = 0;         //Daily count of Gallons pumped, to upload to Google Docs for tracking
+char publishString[40];         //Temporary string to use for Particle.publish of WhTally
+uint16_t currentSpeed = 0;      //The current motor speed setting number (1-8)
+uint16_t overrideSpeed;         //Stores the override speed when set manually
+//uint16_t lastChange;          //Time the speed was last changed via scheduler (not currently used)
+uint16_t scheduledSpeed = 0;    //What speed the schedule says you should be at
+uint8_t autoOverride = 1;       //0 for scheduled, 1 for override.  Changes when solar kicks on
+uint8_t manualOverride = 0;     //0 for scheduled, 1 for override.  Changes via user intervention
+uint32_t overrideStarted;	    //This is set to currentEpochTime when a manual override is triggered
+uint32_t overrideEnds = 0;      //This is set to currentEpochTime + overrideLength when a manual override is triggered
+uint32_t overrideLength = 0;    //Recieved override length in seconds.
+uint32_t previousDataPublish;   //Webhook publish tracking
+bool isBright = 1;              //Tracks whether the screen should be lit or not.
+uint8_t lastDay;                //Used for onceADay();
+
 String sSpeed;
 String sWattage;
 String sFlow;
 String sSolar;
+String sOverride;
+String sTempSolar;
+String sTempPool;
+String sTempRoof;
 
 // Assign pins to relays
 // D0 reserved for SDA of OLED
 // D1 reserved for SCL of OLED
-#define pPumpRelay1     D2
-#define pPumpRelay2     D3
-#define pPumpRelay3     D4
+#define pRelay1         D2
+#define pRelay2         D3
+#define pRelay3         D4
+#define pRelay4         D5
 #define pSolarRelay1    D6
-#define OLED_RESET      D5 //Not sure what this is for, not connected
+#define OLED_RESET      D7 //Not sure what this is for, not connected
 #define pButtons        A0
+#define pIllum          A1
+#define pTempSolar      A2
+#define pTempPool       A3
+#define pTempRoof       A4
 
 Adafruit_SSD1306 oled(OLED_RESET);
 
 void setup() {
     
-    pinMode(pPumpRelay1,  OUTPUT);
-    pinMode(pPumpRelay2,  OUTPUT);
-    pinMode(pPumpRelay3,  OUTPUT);
-    pinMode(pSolarRelay1, INPUT); // Solar panel on pulls this down to ground.  Need INPUT_PULLUP for inactive relay, else it would float
-    pinMode(pButtons,     INPUT);
+    pinMode(pRelay1,        OUTPUT); // Pump Relay 1
+    pinMode(pRelay2,        OUTPUT); // Pump Relay 2
+    pinMode(pRelay3,        OUTPUT); // Pump Relay 3
+    pinMode(pRelay4,        OUTPUT); // Solar Actuator Relay
+    pinMode(pSolarRelay1,   INPUT); // Solar panel on pulls this up to 3.3v.
+    pinMode(pButtons,       INPUT);
+    pinMode(PIllum,         INPUT);
+    pinMode(pTempSolar,     INPUT);
+    pinMode(pTempPool,      INPUT);
+    pinMode(pTempRoof,      INPUT);
 
     oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);    // Initialize with the I2C addr 0x3D (for the 128x64 screen)
     Particle.function("mOverride", mOverride); // Listen for a manual override via remote user input
@@ -100,6 +135,10 @@ void setup() {
     Particle.variable("pumpWattage", sWattage);
     Particle.variable("waterFlow", sFlow);
     Particle.variable("solarAct", sSolar);
+    Particle.variable("override", sOverride);
+    Particle.variable("tempSolar", sTempSolar);
+    Particle.variable("tempPool", sTempPool);
+    Particle.variable("tempRoof", sTempRoof);
     for (int x = 3; x >= 0; x--){                   // Give it x seconds to stabilize the RTC and get a time from NTP
         oled.clearDisplay();                       // Clear Screen
         oled.drawRect(0,0,128,64, WHITE);
@@ -107,7 +146,7 @@ void setup() {
         oled.setTextColor(WHITE);
         oled.setCursor(5,5);
         oled.setTextSize(1);
-        oled.println("Pool-Controller v1.0");
+        oled.println("Pool-Controller v2.1");
         oled.print("    by Jerad Jacob");
         oled.setCursor(30,50);
         oled.print("Startup: ");
@@ -116,12 +155,21 @@ void setup() {
         delay(1000);
     }
     
+    setDSTOffset(1);
+    Time.zone(timeZone);
+    
+    onceADay();
     getTimes();	                               // Set up initial times
     returnToSchedule();                        // Find what the current speed should be
 }
 
 void loop() {
-    //Finds the current time each loop
+    // True once every day
+    if (lastDay != Time.day()) {
+        onceADay();
+        lastDay = Time.day();
+    }
+    checkIllum();
     getTimes();
 
     //Check for expired manual Override
@@ -147,22 +195,27 @@ void loop() {
     trackData();
 }
 
+//Finds the current time each loop
 void getTimes(){
-    //Time.zone() does not suppport DST, so implement it manually
-    if( Time.month() < 3 || (Time.month() == 3 && Time.day() <=13) || (Time.month() == 11 && Time.day() >=6) || Time.month() > 11 ){
-        Time.zone(timeZone);
-    }else{
-        Time.zone(timeZone + 1);
-    }
+    
     //Gets Time-zone adjusted Epoch Time from my butt, and converted HHMM comparison time
     currentEpochTime = Time.now();
     currentTime = convertTime(currentEpochTime);
 }
 
-uint16_t convertTime(uint32_t testTime1){
+void onceADay(){
+    //Manual DST logic
+    if( Time.month() < 3 || (Time.month() == 3 && Time.day() <=13) || (Time.month() == 11 && Time.day() >=6) || Time.month() > 11 ){
+        Time.endDST();
+    }else{
+        Time.beginDST();
+    }
+}
+
+uint16_t convertTime(uint32_t testTime){
     //Converts Epoch to HHMM
     uint16_t returnTime;
-    returnTime = Time.hour(testTime1) * 100 + Time.minute(testTime1);
+    returnTime = Time.hour(testTime) * 100 + Time.minute(testTime);
     return returnTime;
 }
 
@@ -299,6 +352,7 @@ int mOverride(String command) { //Triggered by SmartThings
     // DEBUG
     String sSpeedRecieved = String(overrideSpeed);
     String sTimeRecieved = String(overrideLength);
+    String sOverride = String(manualOverride);
     Particle.publish("Speed_Recieved", sSpeedRecieved + "~" + sTimeRecieved);
     // END DEBUG
     overrideLength = 0; //Reset overrideLength
@@ -324,6 +378,17 @@ void returnToSchedule() {
     delay(2000);
 }
 
+// Prevent OLED burn-in by turning off the screen when
+// the door is shut.
+void checkIllum(){
+    uint8_t currentIllum = analogRead(PIllum);
+    if (currentIllum > 30) {
+        isBright = 1;
+    } else {
+        isBright = 0;
+    }
+}
+
 void trackData(){
     if (currentTime != previousTime) {
         if (currentTime == 0) {
@@ -343,6 +408,7 @@ void trackData(){
         sWattage = String(energyConsum[currentSpeed - 1]);
         sFlow = String(flowCalc[currentSpeed - 1]);
         sSolar = String(autoOverride);
+        sOverride = String(manualOverride);
         Particle.publish("poolLog", "{ \"1\": \"" + sSpeed + "\", \"2\": \"" + sWattage + "\", \"3\": \"" + sFlow + "\", \"4\": \"" + sSolar + "\" }", PRIVATE);
         previousDataPublish = currentEpochTime;
     }
