@@ -1,8 +1,11 @@
+// Automated Pool Controller
+// v2.1
+// by Jerad Jacob
+// Refer to README.md for additional information and latest updates
+// https://github.com/Here-Be-Dragons/Pool-Controller
+
 // This #include statement was automatically added by the Particle IDE.
 #include "Adafruit_SSD1306/Adafruit_SSD1306.h" //OLED
-
-// Refer to README.md for additional information
-// https://github.com/Here-Be-Dragons/Pool-Controller
 
 ////
 //Start of user configurations
@@ -31,6 +34,10 @@ uint16_t defaultOverride = 3600;
 
 // Time Zone offset
 int16_t timeZone = -5;
+
+// Calibration for light sensor.
+// 30 is a reasonable value if the box is tightly sealed.
+uint16_t dispMinBrightness = 30;
 
 // Speed activation times in HHMM format. If two speeds have the same
 // time entered, the higher speed takes precidence.  Leave off any
@@ -83,12 +90,12 @@ uint16_t overrideSpeed;         //Stores the override speed when set manually
 uint16_t scheduledSpeed = 0;    //What speed the schedule says you should be at
 uint8_t autoOverride = 1;       //0 for scheduled, 1 for override.  Changes when solar kicks on
 uint8_t manualOverride = 0;     //0 for scheduled, 1 for override.  Changes via user intervention
-uint32_t overrideStarted;	    //This is set to currentEpochTime when a manual override is triggered
-uint32_t overrideEnds = 0;      //This is set to currentEpochTime + overrideLength when a manual override is triggered
+time_t overrideStarted;	        //This is set to currentEpochTime when a manual override is triggered
+time_t overrideEnds = 0;        //This is set to currentEpochTime + overrideLength when a manual override is triggered
 uint32_t overrideLength = 0;    //Recieved override length in seconds.
-uint32_t previousDataPublish;   //Webhook publish tracking
+time_t previousDataPublish;     //Webhook publish tracking (Epoch)
 bool isBright = 1;              //Tracks whether the screen should be lit or not.
-uint8_t lastDay;                //Used for onceADay();
+uint8_t lastDay;                //Used for onceADay()
 
 String sSpeed;
 String sWattage;
@@ -102,9 +109,9 @@ String sTempRoof;
 // Assign pins to relays
 // D0 reserved for SDA of OLED
 // D1 reserved for SCL of OLED
-#define pRelay1         D2
-#define pRelay2         D3
-#define pRelay3         D4
+#define pPumpRelay1     D2
+#define pPumpRelay2     D3
+#define pPumpRelay3     D4
 #define pRelay4         D5
 #define pSolarRelay1    D6
 #define OLED_RESET      D7 //Not sure what this is for, not connected
@@ -118,13 +125,13 @@ Adafruit_SSD1306 oled(OLED_RESET);
 
 void setup() {
     
-    pinMode(pRelay1,        OUTPUT); // Pump Relay 1
-    pinMode(pRelay2,        OUTPUT); // Pump Relay 2
-    pinMode(pRelay3,        OUTPUT); // Pump Relay 3
+    pinMode(pPumpRelay1,        OUTPUT); // Pump Relay 1
+    pinMode(pPumpRelay2,        OUTPUT); // Pump Relay 2
+    pinMode(pPumpRelay3,        OUTPUT); // Pump Relay 3
     pinMode(pRelay4,        OUTPUT); // Solar Actuator Relay
     pinMode(pSolarRelay1,   INPUT); // Solar panel on pulls this up to 3.3v.
     pinMode(pButtons,       INPUT);
-    pinMode(PIllum,         INPUT);
+    pinMode(pIllum,         INPUT);
     pinMode(pTempSolar,     INPUT);
     pinMode(pTempPool,      INPUT);
     pinMode(pTempRoof,      INPUT);
@@ -155,12 +162,12 @@ void setup() {
         delay(1000);
     }
     
-    setDSTOffset(1);
+    Time.setDSTOffset(1);
     Time.zone(timeZone);
     
     onceADay();
-    getTimes();	                               // Set up initial times
-    returnToSchedule();                        // Find what the current speed should be
+    getTimes();	        // Set up initial times
+    returnToSchedule(); // Find what the current speed should be
 }
 
 void loop() {
@@ -190,6 +197,8 @@ void loop() {
 
     //Update the oled display
     updateDisplay();
+    
+    getTemps();
   
     //Keep track of energy consumption and speed
     trackData();
@@ -197,8 +206,7 @@ void loop() {
 
 //Finds the current time each loop
 void getTimes(){
-    
-    //Gets Time-zone adjusted Epoch Time from my butt, and converted HHMM comparison time
+    //Gets Time-zone adjusted Epoch Time from the cloud, and converted HHMM comparison time
     currentEpochTime = Time.now();
     currentTime = convertTime(currentEpochTime);
 }
@@ -210,6 +218,7 @@ void onceADay(){
     }else{
         Time.beginDST();
     }
+    
 }
 
 uint16_t convertTime(uint32_t testTime){
@@ -381,12 +390,46 @@ void returnToSchedule() {
 // Prevent OLED burn-in by turning off the screen when
 // the door is shut.
 void checkIllum(){
-    uint8_t currentIllum = analogRead(PIllum);
-    if (currentIllum > 30) {
+    uint8_t currentIllum = analogRead(pIllum);
+    if (currentIllum > dispMinBrightness) {
         isBright = 1;
     } else {
         isBright = 0;
     }
+}
+
+void getTemps(){
+    float poolTempF,solarTempF,roofTempF;
+    
+    uint16_t solarReadRaw = analogRead(pTempSolar);
+    uint16_t poolReadRaw = analogRead(pTempPool);
+    uint16_t roofReadRaw = analogRead(pTempRoof);
+    
+    poolTempF = thermistor(poolReadRaw);
+    solarTempF = thermistor(solarReadRaw);
+    roofTempF = thermistor(roofReadRaw);
+}
+
+float thermistor(int rawADC) {
+    // Modified from http://playground.arduino.cc/ComponentLib/Thermistor2
+    // Utilizes the Steinhart-Hart Thermistor Equation:
+    // Temperature in Kelvin = 1 / {A + B[ln(R)] + C[ln(R)]3}
+    // where A = 0.001129148, B = 0.000234125 and C = 8.76741E-08
+    
+    float vcc = 4.91;                       // only used for display purposes, if used
+                                            // set to the measured Vcc.
+    float pad = 9850;                       // balance/pad resistor value, set this to
+                                            // the measured resistance of your pad resistor
+    float thermr = 10000;                   // thermistor nominal resistance
+    
+    long Resistance;  
+    float Temp;  // Dual-Purpose variable to save space.
+    Resistance = pad * ((1024.0 / rawADC) - 1); 
+    Temp = log(Resistance); // Saving the Log(resistance) so not to calculate  it 4 times later
+    Temp = 1 / (0.001129148 + (0.000234125 * Temp) + (0.0000000876741 * Temp * Temp * Temp));
+    Temp = Temp - 273.15;  // Convert Kelvin to Celsius                      
+    Temp = (Temp * 9.0)/ 5.0 + 32.0;  // Convert Celsius to Fahrenheit
+    return Temp; // Return the Temperature
 }
 
 void trackData(){
@@ -409,6 +452,9 @@ void trackData(){
         sFlow = String(flowCalc[currentSpeed - 1]);
         sSolar = String(autoOverride);
         sOverride = String(manualOverride);
+        sTempSolar = String(poolTempF);
+        sTempPool = String(poolTempF);
+        sTempRoof = String(poolTempF);
         Particle.publish("poolLog", "{ \"1\": \"" + sSpeed + "\", \"2\": \"" + sWattage + "\", \"3\": \"" + sFlow + "\", \"4\": \"" + sSolar + "\" }", PRIVATE);
         previousDataPublish = currentEpochTime;
     }
@@ -416,30 +462,32 @@ void trackData(){
 
 void updateDisplay(){ //128x64
     oled.clearDisplay();
-    oled.drawRect(80,0,48,55, WHITE);
-    oled.drawRect(81,1,46,53, WHITE);
-    oled.setTextSize(6);
-    oled.setTextColor(WHITE);
-    oled.setCursor(88,6);
-    oled.print(currentSpeed);
-    oled.setTextSize(1);
-    oled.setCursor(80,57);
-    oled.print(speedRPM[currentSpeed-1]);
-    oled.print(" RPM");
-    oled.setCursor(0,0);
-    oled.print("Time: ");
-    oled.println(currentTime);
-    oled.print("Wh: ");
-    oled.println(WhTally);
-    oled.print("Scheduled: ");
-    oled.println(scheduledSpeed);
-    if( manualOverride ) {
-        oled.println("MANUAL OVERRIDE:");
-        oled.print("Spd: ");
-        oled.println(overrideSpeed);
-        oled.print("Timer: ");
-        oled.println(overrideEnds - currentEpochTime);
+    if (isBright == 1) { //Only display if light sensor activates it
+        oled.drawRect(80,0,48,55, WHITE);
+        oled.drawRect(81,1,46,53, WHITE);
+        oled.setTextSize(6);
+        oled.setTextColor(WHITE);
+        oled.setCursor(88,6);
+        oled.print(currentSpeed);
+        oled.setTextSize(1);
+        oled.setCursor(80,57);
+        oled.print(speedRPM[currentSpeed-1]);
+        oled.print(" RPM");
+        oled.setCursor(0,0);
+        oled.print("Time: ");
+        oled.println(currentTime);
+        oled.print("Wh: ");
+        oled.println(WhTally);
+        oled.print("Scheduled: ");
+        oled.println(scheduledSpeed);
+        if( manualOverride ) {
+            oled.println("MANUAL OVERRIDE:");
+            oled.print("Spd: ");
+            oled.println(overrideSpeed);
+            oled.print("Timer: ");
+            oled.println(overrideEnds - currentEpochTime);
+        }
+        if( autoOverride ) oled.println("AUTO OVERRIDE");
     }
-    if( autoOverride ) oled.println("AUTO OVERRIDE");
     oled.display();
 }
