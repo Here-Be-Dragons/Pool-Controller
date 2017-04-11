@@ -551,6 +551,37 @@ RECOMMENDED ON ALL LAYERS</text>
 </package>
 </packages>
 </library>
+<library name="lm1117">
+<description>&lt;b&gt;LM1117 Voltage Regulator&lt;/b&gt;
+&lt;p&gt;800mA LDO Regulator, available in 1.8V, 2.5V, 2.85V, 3.3V, 5V, and adjustable versions.&lt;/p&gt;</description>
+<packages>
+<package name="TO220V">
+<description>&lt;b&gt;TO-220 Standing Through-hole Package&lt;/b&gt;</description>
+<wire x1="5.08" y1="-1.143" x2="4.953" y2="-4.064" width="0.127" layer="21"/>
+<wire x1="4.699" y1="-4.318" x2="4.953" y2="-4.064" width="0.127" layer="21"/>
+<wire x1="4.699" y1="-4.318" x2="-4.699" y2="-4.318" width="0.127" layer="21"/>
+<wire x1="-4.953" y1="-4.064" x2="-4.699" y2="-4.318" width="0.127" layer="21"/>
+<wire x1="-4.953" y1="-4.064" x2="-5.08" y2="-1.143" width="0.127" layer="21"/>
+<circle x="-4.4958" y="-3.7084" radius="0.254" width="0.127" layer="21"/>
+<pad name="1" x="-2.54" y="-2.54" drill="1.016" shape="long" rot="R90"/>
+<pad name="2" x="0" y="-2.54" drill="1.016" shape="long" rot="R90"/>
+<pad name="3" x="2.54" y="-2.54" drill="1.016" shape="long" rot="R90"/>
+<text x="-5.08" y="-6.0452" size="1.27" layer="25" ratio="10">&gt;NAME</text>
+<text x="-5.08" y="-7.62" size="1.27" layer="27" ratio="10">&gt;VALUE</text>
+<text x="-3.175" y="-3.175" size="1.27" layer="51" ratio="10">1</text>
+<text x="-0.635" y="-3.175" size="1.27" layer="51" ratio="10">2</text>
+<text x="1.905" y="-3.175" size="1.27" layer="51" ratio="10">3</text>
+<rectangle x1="-5.334" y1="-0.762" x2="5.334" y2="0" layer="21"/>
+<rectangle x1="-5.334" y1="-1.27" x2="-3.429" y2="-0.762" layer="21"/>
+<rectangle x1="-1.651" y1="-1.27" x2="-0.889" y2="-0.762" layer="21"/>
+<rectangle x1="-3.429" y1="-1.27" x2="-1.651" y2="-0.762" layer="51"/>
+<rectangle x1="0.889" y1="-1.27" x2="1.651" y2="-0.762" layer="21"/>
+<rectangle x1="3.429" y1="-1.27" x2="5.334" y2="-0.762" layer="21"/>
+<rectangle x1="-0.889" y1="-1.27" x2="0.889" y2="-0.762" layer="51"/>
+<rectangle x1="1.651" y1="-1.27" x2="3.429" y2="-0.762" layer="51"/>
+</package>
+</packages>
+</library>
 </libraries>
 <attributes>
 </attributes>
@@ -751,11 +782,9 @@ Please make sure your boards conform to these design rules.</description>
 <element name="J5" library="SparkFun-Connectors" package="SCREWTERMINAL-5MM-2" value="Temp_Solar" x="3.81" y="31.75" rot="R270">
 <attribute name="STOREFRONT_ID" value="PRT-08432" x="3.81" y="31.75" size="1.778" layer="27" rot="R270" display="off"/>
 </element>
-<element name="R1" library="SparkFun-Passives" package="AXIAL-0.3" value="1kΩ" x="62.23" y="19.05" rot="R270"/>
 <element name="R10" library="SparkFun-Passives" package="AXIAL-0.3" value="22kΩ" x="48.26" y="25.4" rot="R180"/>
 <element name="R12" library="SparkFun-Passives" package="AXIAL-0.3" value="10kΩ" x="10.16" y="16.51" rot="R270"/>
 <element name="R14" library="SparkFun-Passives" package="AXIAL-0.3" value="10kΩ" x="10.16" y="29.21" rot="R90"/>
-<element name="R2" library="SparkFun-Passives" package="AXIAL-0.3" value="2kΩ" x="59.69" y="19.05" rot="R270"/>
 <element name="R3" library="SparkFun-Passives" package="AXIAL-0.3" value="10kΩ" x="10.16" y="41.91" rot="R90"/>
 <element name="R4" library="SparkFun-Sensors" package="PHOTOCELL" value="PHOTOCELL" x="60.96" y="29.21" rot="R90"/>
 <element name="R5" library="SparkFun-Passives" package="AXIAL-0.3" value="10kΩ" x="48.26" y="33.02"/>
@@ -779,6 +808,7 @@ Please make sure your boards conform to these design rules.</description>
 <attribute name="STOREFRONT_ID" value="PRT-08432" x="3.81" y="57.15" size="1.778" layer="27" rot="R270" display="off"/>
 </element>
 <element name="R11" library="SparkFun-Passives" package="AXIAL-0.3" value="10kΩ" x="10.16" y="54.61" rot="R90"/>
+<element name="IC1" library="lm1117" package="TO220V" value="LM1117T-3.3" x="64.77" y="19.05" rot="R270"/>
 </elements>
 <signals>
 <signal name="VIN">
@@ -790,7 +820,6 @@ Please make sure your boards conform to these design rules.</description>
 <signal name="GND">
 <contactref element="J1" pad="GNDBREAK"/>
 <contactref element="J1" pad="GND"/>
-<contactref element="R2" pad="P$2"/>
 <contactref element="PHOTON" pad="21"/>
 <contactref element="R9" pad="P$2"/>
 <contactref element="J3" pad="1"/>
@@ -825,6 +854,7 @@ Please make sure your boards conform to these design rules.</description>
 <vertex x="25.4" y="41.91"/>
 <vertex x="25.4" y="59.69"/>
 </polygon>
+<contactref element="IC1" pad="1"/>
 </signal>
 <signal name="N$3">
 <contactref element="PHOTON" pad="13"/>
@@ -862,14 +892,9 @@ Please make sure your boards conform to these design rules.</description>
 </signal>
 <signal name="5V">
 <contactref element="J1" pad="PWR"/>
-<contactref element="R1" pad="P$2"/>
 <contactref element="U$2" pad="VCC"/>
 <contactref element="J3" pad="6"/>
-<wire x1="50.8" y1="12.43" x2="61.96" y2="12.43" width="0.4064" layer="1"/>
-<wire x1="61.96" y1="12.43" x2="62.23" y2="12.7" width="0.4064" layer="1"/>
-<wire x1="62.23" y1="12.7" x2="62.23" y2="15.24" width="0.4064" layer="1"/>
-<wire x1="62.23" y1="15.24" x2="63.5" y2="15.24" width="0.4064" layer="1"/>
-<wire x1="63.5" y1="15.24" x2="64.77" y2="16.51" width="0.4064" layer="1"/>
+<wire x1="50.8" y1="12.43" x2="62.23" y2="12.43" width="0.4064" layer="1"/>
 <wire x1="64.77" y1="16.51" x2="64.77" y2="48.26" width="0.4064" layer="1"/>
 <wire x1="64.77" y1="48.26" x2="63.5" y2="49.53" width="0.4064" layer="1"/>
 <wire x1="63.5" y1="49.53" x2="62.23" y2="49.53" width="0.4064" layer="1"/>
@@ -878,6 +903,9 @@ Please make sure your boards conform to these design rules.</description>
 <wire x1="49.53" y1="12.7" x2="50.8" y2="12.43" width="0.4064" layer="16"/>
 <wire x1="23.77" y1="37.03" x2="24.13" y2="36.83" width="0.4064" layer="16"/>
 <wire x1="24.13" y1="36.83" x2="24.13" y2="35.56" width="0.4064" layer="16"/>
+<contactref element="IC1" pad="3"/>
+<wire x1="64.77" y1="16.51" x2="62.23" y2="16.51" width="0.4064" layer="1"/>
+<wire x1="62.23" y1="12.43" x2="62.23" y2="16.51" width="0.4064" layer="1"/>
 </signal>
 <signal name="N$1">
 <contactref element="PHOTON" pad="15"/>
@@ -1006,12 +1034,9 @@ Please make sure your boards conform to these design rules.</description>
 <contactref element="R7" pad="P$1"/>
 <contactref element="R8" pad="P$1"/>
 <contactref element="R10" pad="P$1"/>
-<contactref element="R2" pad="P$1"/>
-<contactref element="R1" pad="P$1"/>
 <contactref element="PHOTON" pad="24"/>
 <contactref element="J4" pad="1"/>
 <contactref element="R3" pad="P$1"/>
-<wire x1="62.23" y1="22.86" x2="59.69" y2="22.86" width="0.4064" layer="1"/>
 <wire x1="52.07" y1="22.86" x2="52.07" y2="25.4" width="0.4064" layer="1"/>
 <wire x1="52.07" y1="25.4" x2="52.07" y2="27.94" width="0.4064" layer="1"/>
 <wire x1="52.07" y1="27.94" x2="52.07" y2="30.48" width="0.4064" layer="1"/>
@@ -1038,9 +1063,12 @@ Please make sure your boards conform to these design rules.</description>
 <wire x1="51.308" y1="41.91" x2="50.8" y2="40.64" width="0.4064" layer="16"/>
 <wire x1="50.8" y1="40.64" x2="49.53" y2="39.37" width="0.4064" layer="16"/>
 <wire x1="49.53" y1="39.37" x2="48.26" y2="39.37" width="0.4064" layer="16"/>
-<wire x1="60.96" y1="27.21" x2="62.23" y2="25.4" width="0.4064" layer="16"/>
-<wire x1="62.23" y1="25.4" x2="62.23" y2="22.86" width="0.4064" layer="16"/>
-<wire x1="59.69" y1="22.86" x2="52.07" y2="22.86" width="0.4064" layer="1"/>
+<contactref element="IC1" pad="2"/>
+<wire x1="62.23" y1="19.05" x2="59.69" y2="19.05" width="0.4064" layer="1"/>
+<wire x1="59.69" y1="19.05" x2="55.88" y2="22.86" width="0.4064" layer="1"/>
+<wire x1="55.88" y1="22.86" x2="52.07" y2="22.86" width="0.4064" layer="1"/>
+<wire x1="60.96" y1="27.21" x2="60.23" y2="27.21" width="0.4064" layer="1"/>
+<wire x1="60.23" y1="27.21" x2="55.88" y2="22.86" width="0.4064" layer="1"/>
 </signal>
 <signal name="N$15">
 <contactref element="R6" pad="P$2"/>

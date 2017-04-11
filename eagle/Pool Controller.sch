@@ -5069,6 +5069,128 @@ SMT- SWCH-08247</description>
 </deviceset>
 </devicesets>
 </library>
+<library name="lm1117">
+<description>&lt;b&gt;LM1117 Voltage Regulator&lt;/b&gt;
+&lt;p&gt;800mA LDO Regulator, available in 1.8V, 2.5V, 2.85V, 3.3V, 5V, and adjustable versions.&lt;/p&gt;</description>
+<packages>
+<package name="TO220">
+<description>&lt;b&gt;TO-220 Through-hole Package&lt;/b&gt;</description>
+<wire x1="-5.207" y1="-1.27" x2="5.207" y2="-1.27" width="0.127" layer="21"/>
+<wire x1="5.207" y1="14.605" x2="-5.207" y2="14.605" width="0.127" layer="21"/>
+<wire x1="5.207" y1="-1.27" x2="5.207" y2="11.176" width="0.127" layer="21"/>
+<wire x1="5.207" y1="11.176" x2="4.318" y2="11.176" width="0.127" layer="21"/>
+<wire x1="4.318" y1="11.176" x2="4.318" y2="12.7" width="0.127" layer="21"/>
+<wire x1="4.318" y1="12.7" x2="5.207" y2="12.7" width="0.127" layer="21"/>
+<wire x1="5.207" y1="12.7" x2="5.207" y2="14.605" width="0.127" layer="21"/>
+<wire x1="-5.207" y1="-1.27" x2="-5.207" y2="11.176" width="0.127" layer="21"/>
+<wire x1="-5.207" y1="11.176" x2="-4.318" y2="11.176" width="0.127" layer="21"/>
+<wire x1="-4.318" y1="11.176" x2="-4.318" y2="12.7" width="0.127" layer="21"/>
+<wire x1="-4.318" y1="12.7" x2="-5.207" y2="12.7" width="0.127" layer="21"/>
+<wire x1="-5.207" y1="12.7" x2="-5.207" y2="14.605" width="0.127" layer="21"/>
+<wire x1="-4.572" y1="-0.635" x2="4.572" y2="-0.635" width="0.0508" layer="21"/>
+<wire x1="4.572" y1="7.62" x2="4.572" y2="-0.635" width="0.0508" layer="21"/>
+<wire x1="4.572" y1="7.62" x2="-4.572" y2="7.62" width="0.0508" layer="21"/>
+<wire x1="-4.572" y1="-0.635" x2="-4.572" y2="7.62" width="0.0508" layer="21"/>
+<circle x="0" y="11.176" radius="1.8034" width="0.127" layer="21"/>
+<pad name="1" x="-2.54" y="-6.35" drill="1.1176" shape="long" rot="R90"/>
+<pad name="2" x="0" y="-6.35" drill="1.1176" shape="long" rot="R90"/>
+<pad name="3" x="2.54" y="-6.35" drill="1.1176" shape="long" rot="R90"/>
+<text x="-5.842" y="-1.27" size="1.778" layer="25" ratio="10" rot="R90">&gt;NAME</text>
+<text x="7.62" y="-1.397" size="1.778" layer="27" ratio="10" rot="R90">&gt;VALUE</text>
+<text x="-4.445" y="7.874" size="0.9906" layer="21" ratio="12">A17,5mm</text>
+<text x="-3.175" y="0" size="1.27" layer="51" ratio="10">1</text>
+<text x="-0.635" y="0" size="1.27" layer="51" ratio="10">2</text>
+<text x="1.905" y="0" size="1.27" layer="51" ratio="10">3</text>
+<rectangle x1="2.159" y1="-4.699" x2="2.921" y2="-4.064" layer="21"/>
+<rectangle x1="-0.381" y1="-4.699" x2="0.381" y2="-4.064" layer="21"/>
+<rectangle x1="-2.921" y1="-4.699" x2="-2.159" y2="-4.064" layer="21"/>
+<rectangle x1="-3.175" y1="-4.064" x2="-1.905" y2="-1.27" layer="21"/>
+<rectangle x1="-0.635" y1="-4.064" x2="0.635" y2="-1.27" layer="21"/>
+<rectangle x1="1.905" y1="-4.064" x2="3.175" y2="-1.27" layer="21"/>
+<rectangle x1="-2.921" y1="-6.604" x2="-2.159" y2="-4.699" layer="51"/>
+<rectangle x1="-0.381" y1="-6.604" x2="0.381" y2="-4.699" layer="51"/>
+<rectangle x1="2.159" y1="-6.604" x2="2.921" y2="-4.699" layer="51"/>
+</package>
+<package name="TO220V">
+<description>&lt;b&gt;TO-220 Standing Through-hole Package&lt;/b&gt;</description>
+<wire x1="5.08" y1="-1.143" x2="4.953" y2="-4.064" width="0.127" layer="21"/>
+<wire x1="4.699" y1="-4.318" x2="4.953" y2="-4.064" width="0.127" layer="21"/>
+<wire x1="4.699" y1="-4.318" x2="-4.699" y2="-4.318" width="0.127" layer="21"/>
+<wire x1="-4.953" y1="-4.064" x2="-4.699" y2="-4.318" width="0.127" layer="21"/>
+<wire x1="-4.953" y1="-4.064" x2="-5.08" y2="-1.143" width="0.127" layer="21"/>
+<circle x="-4.4958" y="-3.7084" radius="0.254" width="0.127" layer="21"/>
+<pad name="1" x="-2.54" y="-2.54" drill="1.016" shape="long" rot="R90"/>
+<pad name="2" x="0" y="-2.54" drill="1.016" shape="long" rot="R90"/>
+<pad name="3" x="2.54" y="-2.54" drill="1.016" shape="long" rot="R90"/>
+<text x="-5.08" y="-6.0452" size="1.27" layer="25" ratio="10">&gt;NAME</text>
+<text x="-5.08" y="-7.62" size="1.27" layer="27" ratio="10">&gt;VALUE</text>
+<text x="-3.175" y="-3.175" size="1.27" layer="51" ratio="10">1</text>
+<text x="-0.635" y="-3.175" size="1.27" layer="51" ratio="10">2</text>
+<text x="1.905" y="-3.175" size="1.27" layer="51" ratio="10">3</text>
+<rectangle x1="-5.334" y1="-0.762" x2="5.334" y2="0" layer="21"/>
+<rectangle x1="-5.334" y1="-1.27" x2="-3.429" y2="-0.762" layer="21"/>
+<rectangle x1="-1.651" y1="-1.27" x2="-0.889" y2="-0.762" layer="21"/>
+<rectangle x1="-3.429" y1="-1.27" x2="-1.651" y2="-0.762" layer="51"/>
+<rectangle x1="0.889" y1="-1.27" x2="1.651" y2="-0.762" layer="21"/>
+<rectangle x1="3.429" y1="-1.27" x2="5.334" y2="-0.762" layer="21"/>
+<rectangle x1="-0.889" y1="-1.27" x2="0.889" y2="-0.762" layer="51"/>
+<rectangle x1="1.651" y1="-1.27" x2="3.429" y2="-0.762" layer="51"/>
+</package>
+</packages>
+<symbols>
+<symbol name="VREG">
+<wire x1="-5.08" y1="-5.08" x2="5.08" y2="-5.08" width="0.4064" layer="94"/>
+<wire x1="5.08" y1="-5.08" x2="5.08" y2="2.54" width="0.4064" layer="94"/>
+<wire x1="5.08" y1="2.54" x2="-5.08" y2="2.54" width="0.4064" layer="94"/>
+<wire x1="-5.08" y1="2.54" x2="-5.08" y2="-5.08" width="0.4064" layer="94"/>
+<text x="2.54" y="-7.62" size="1.778" layer="95">&gt;NAME</text>
+<text x="2.54" y="-10.16" size="1.778" layer="96">&gt;VALUE</text>
+<text x="-2.032" y="-4.318" size="1.524" layer="95">GND</text>
+<text x="-4.445" y="-0.635" size="1.524" layer="95">IN</text>
+<text x="0.635" y="-0.635" size="1.524" layer="95">OUT</text>
+<pin name="IN" x="-7.62" y="0" visible="off" length="short" direction="in"/>
+<pin name="GND" x="0" y="-7.62" visible="off" length="short" direction="in" rot="R90"/>
+<pin name="OUT" x="7.62" y="0" visible="off" length="short" direction="pas" rot="R180"/>
+</symbol>
+</symbols>
+<devicesets>
+<deviceset name="LM1117T-*" prefix="IC">
+<gates>
+<gate name="G$1" symbol="VREG" x="0" y="0"/>
+</gates>
+<devices>
+<device name="" package="TO220">
+<connects>
+<connect gate="G$1" pin="GND" pad="1"/>
+<connect gate="G$1" pin="IN" pad="3"/>
+<connect gate="G$1" pin="OUT" pad="2"/>
+</connects>
+<technologies>
+<technology name="1.8"/>
+<technology name="2.5"/>
+<technology name="2.85"/>
+<technology name="3.3"/>
+<technology name="5.0"/>
+</technologies>
+</device>
+<device name="-V" package="TO220V">
+<connects>
+<connect gate="G$1" pin="GND" pad="1"/>
+<connect gate="G$1" pin="IN" pad="3"/>
+<connect gate="G$1" pin="OUT" pad="2"/>
+</connects>
+<technologies>
+<technology name="1.8"/>
+<technology name="2.5"/>
+<technology name="2.85"/>
+<technology name="3.3"/>
+<technology name="5.0"/>
+</technologies>
+</device>
+</devices>
+</deviceset>
+</devicesets>
+</library>
 </libraries>
 <attributes>
 </attributes>
@@ -5083,8 +5205,6 @@ SMT- SWCH-08247</description>
 <part name="U$2" library="tft_1.8_1.44_oled_0.96" deviceset="OLED_0.96_I2C" device=""/>
 <part name="FRAME1" library="frames" deviceset="LETTER_L" device=""/>
 <part name="J1" library="SparkFun-Connectors" deviceset="POWER_JACK" device="PTH"/>
-<part name="R1" library="SparkFun-Passives" deviceset="RESISTOR" device="AXIAL-0.3" value="1kΩ"/>
-<part name="R2" library="SparkFun-Passives" deviceset="RESISTOR" device="AXIAL-0.3" value="2kΩ"/>
 <part name="R4" library="SparkFun-Sensors" deviceset="PHOTOCELL" device="PTH" value="PHOTOCELL"/>
 <part name="R5" library="SparkFun-Passives" deviceset="RESISTOR" device="AXIAL-0.3" value="10kΩ"/>
 <part name="GND1" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
@@ -5123,6 +5243,7 @@ SMT- SWCH-08247</description>
 <part name="GND5" library="SparkFun-Aesthetics" deviceset="GND" device=""/>
 <part name="J6" library="SparkFun-Connectors" deviceset="M02" device="5MM" value="Temp_Roof"/>
 <part name="R11" library="SparkFun-Passives" deviceset="RESISTOR" device="AXIAL-0.3" value="10kΩ"/>
+<part name="IC1" library="lm1117" deviceset="LM1117T-*" device="-V" technology="3.3" value="LM1117T-3.3"/>
 </parts>
 <sheets>
 <sheet>
@@ -5135,12 +5256,10 @@ SMT- SWCH-08247</description>
 <instance part="FRAME1" gate="G$1" x="-5.08" y="-45.72"/>
 <instance part="FRAME1" gate="G$2" x="142.24" y="-45.72"/>
 <instance part="J1" gate="G$1" x="15.24" y="111.76"/>
-<instance part="R1" gate="G$1" x="35.56" y="119.38" rot="R180"/>
-<instance part="R2" gate="G$1" x="35.56" y="109.22" rot="R180"/>
 <instance part="R4" gate="G$1" x="55.88" y="71.12"/>
 <instance part="R5" gate="G$1" x="55.88" y="55.88"/>
 <instance part="GND1" gate="1" x="25.4" y="104.14"/>
-<instance part="SUPPLY1" gate="G$1" x="43.18" y="127"/>
+<instance part="SUPPLY1" gate="G$1" x="55.88" y="127"/>
 <instance part="SUPPLY2" gate="G$1" x="175.26" y="116.84"/>
 <instance part="GND2" gate="1" x="121.92" y="106.68" rot="R180"/>
 <instance part="GND3" gate="1" x="185.42" y="96.52"/>
@@ -5175,6 +5294,7 @@ SMT- SWCH-08247</description>
 <instance part="GND5" gate="1" x="86.36" y="121.92" rot="R180"/>
 <instance part="J6" gate="G$1" x="73.66" y="101.6"/>
 <instance part="R11" gate="G$1" x="93.98" y="111.76" rot="R270"/>
+<instance part="IC1" gate="G$1" x="38.1" y="121.92"/>
 </instances>
 <busses>
 </busses>
@@ -5190,9 +5310,10 @@ SMT- SWCH-08247</description>
 <wire x1="25.4" y1="109.22" x2="25.4" y2="106.68" width="0.1524" layer="91"/>
 <wire x1="17.78" y1="114.3" x2="25.4" y2="114.3" width="0.1524" layer="91"/>
 <junction x="25.4" y="114.3"/>
-<pinref part="R2" gate="G$1" pin="2"/>
-<wire x1="30.48" y1="109.22" x2="25.4" y2="109.22" width="0.1524" layer="91"/>
 <junction x="25.4" y="109.22"/>
+<pinref part="IC1" gate="G$1" pin="GND"/>
+<wire x1="38.1" y1="114.3" x2="38.1" y2="109.22" width="0.1524" layer="91"/>
+<wire x1="38.1" y1="109.22" x2="25.4" y2="109.22" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="PHOTON" gate="G$1" pin="GND@21"/>
@@ -5285,12 +5406,12 @@ SMT- SWCH-08247</description>
 <net name="5V" class="0">
 <segment>
 <pinref part="J1" gate="G$1" pin="PWR"/>
-<pinref part="R1" gate="G$1" pin="2"/>
 <wire x1="17.78" y1="119.38" x2="27.94" y2="119.38" width="0.1524" layer="91"/>
 <pinref part="SUPPLY6" gate="G$1" pin="VCC"/>
-<wire x1="27.94" y1="119.38" x2="30.48" y2="119.38" width="0.1524" layer="91"/>
+<wire x1="27.94" y1="119.38" x2="30.48" y2="121.92" width="0.1524" layer="91"/>
 <wire x1="27.94" y1="127" x2="27.94" y2="119.38" width="0.1524" layer="91"/>
 <junction x="27.94" y="119.38"/>
+<pinref part="IC1" gate="G$1" pin="IN"/>
 </segment>
 <segment>
 <pinref part="U$2" gate="G$1" pin="VCC"/>
@@ -5452,14 +5573,10 @@ SMT- SWCH-08247</description>
 <junction x="132.08" y="20.32"/>
 </segment>
 <segment>
-<pinref part="R2" gate="G$1" pin="1"/>
-<wire x1="40.64" y1="109.22" x2="43.18" y2="109.22" width="0.1524" layer="91"/>
-<wire x1="43.18" y1="109.22" x2="43.18" y2="119.38" width="0.1524" layer="91"/>
 <pinref part="SUPPLY1" gate="G$1" pin="VCC"/>
-<pinref part="R1" gate="G$1" pin="1"/>
-<wire x1="43.18" y1="119.38" x2="43.18" y2="127" width="0.1524" layer="91"/>
-<wire x1="40.64" y1="119.38" x2="43.18" y2="119.38" width="0.1524" layer="91"/>
-<junction x="43.18" y="119.38"/>
+<wire x1="55.88" y1="119.38" x2="55.88" y2="127" width="0.1524" layer="91"/>
+<pinref part="IC1" gate="G$1" pin="OUT"/>
+<wire x1="55.88" y1="119.38" x2="45.72" y2="121.92" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="PHOTON" gate="G$1" pin="3V3"/>
