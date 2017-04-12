@@ -31,7 +31,7 @@ void loop() {
     // read the state of the switch into a local variable:
     uint16_t reading = analogRead(buttonPin);
     sResistance = String(reading);
-    int tmpButtonState = 0;
+    uint8_t tmpButtonState = 0;
     
     if(reading > aButton4[0] && reading < aButton4[1]){
         tmpButtonState = 4;
