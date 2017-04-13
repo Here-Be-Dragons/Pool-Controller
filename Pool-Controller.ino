@@ -5,6 +5,9 @@
 // https://github.com/Here-Be-Dragons/Pool-Controller
 
 // This #include statement was automatically added by the Particle IDE.
+#include <photon-thermistor.h>
+
+// This #include statement was automatically added by the Particle IDE.
 #include <Adafruit_SSD1306.h> //OLED
 
 ////
@@ -82,6 +85,11 @@ uint16_t buttonResist2 = 2790;
 uint16_t buttonResist3 = 3360;
 uint16_t buttonResist4 = 3725;
 
+// Voltage divider resistor values for thermistors.  These need to be reasonably exact
+uint16_t rPool = 10090;
+uint16_t rSolar = 10040;
+uint16_t rRoof = 10030;
+
 ////
 //End of user configurations
 ////
@@ -122,7 +130,7 @@ float solarTempF;
 float roofTempF;
 
 //Variables for Solar Heating
-uint8_t solarControl = 0;      // Manual control of solar. 0 = override to off, 1 = override to on, 2 = Solar Controller
+uint8_t solarControl = 2;      // Manual control of solar. 0 = override to off, 1 = override to on, 2 = Solar Controller
 bool autoOverride = 1;          // Changes when solar kicks on. 0 = scheduled speed, 1 = solar min. speed override
 
 //Variables for reporting
@@ -163,6 +171,20 @@ uint8_t oledOverrideTimer = 0;
 #define pTempRoof       A4
 
 Adafruit_SSD1306 oled(OLED_RESET);
+
+// For an NTC (negative temperature coefficient) thermistor only!
+// CONSTRUCTOR PARAMETERS:
+// 1. pin: Photon pin
+// 2. seriesResistor: The resistance value of the fixed resistor (based on your hardware setup)
+// 3. adcMax: The maximum analog-to-digital convert value returned by analogRead (Photon is 4095 NOT the typical Arduino 1023!)
+// 4. thermistorNominal: Resistance at nominal temperature (will be documented with the thermistor, usually "10k")
+// 5. temperatureNominal: Temperature for nominal resistance in celcius (will be supplied with the thermistor, assume 25 if not stated)
+// 6. bCoef: Beta coefficient of the thermistor; usually 3435 or 3950 (will be documented with the thermistor)
+// 7. samples: Number of analog samples to average (for smoothing)
+// 8. sampleDelay: Milliseconds between analog samples (for smoothing)
+Thermistor solarTherm = Thermistor(pTempSolar, rSolar, 4095, 10000, 25, 3921, 3, 5);
+Thermistor poolTherm  = Thermistor(pTempPool,  rPool,  4095, 10000, 25, 3921, 3, 5);
+Thermistor roofTherm  = Thermistor(pTempRoof,  rRoof,  4095, 10000, 25, 3921, 3, 5);
 
 void setup() {
     
@@ -464,35 +486,13 @@ void checkIllum(){
 }
 
 void getTemps(){
-    uint16_t solarReadRaw = analogRead(pTempSolar);
-    uint16_t poolReadRaw = analogRead(pTempPool);
-    uint16_t roofReadRaw = analogRead(pTempRoof);
+    solarTempF = solarTherm.readTempF();
+    poolTempF = poolTherm.readTempF();
+    roofTempF = roofTherm.readTempF();
     
-    poolTempF = thermistor(poolReadRaw);
-    solarTempF = thermistor(solarReadRaw);
-    roofTempF = thermistor(roofReadRaw);
-}
-
-float thermistor(int rawADC) {
-    // Modified from http://playground.arduino.cc/ComponentLib/Thermistor2
-    // Utilizes the Steinhart-Hart Thermistor Equation:
-    // Temperature in Kelvin = 1 / {A + B[ln(R)] + C[ln(R)]3}
-    // where A = 0.001129148, B = 0.000234125 and C = 8.76741E-08
-    
-    float vcc = 4.91;                       // only used for display purposes, if used
-                                            // set to the measured Vcc.
-    float pad = 9850;                       // balance/pad resistor value, set this to
-                                            // the measured resistance of your pad resistor
-    float thermr = 10000;                   // thermistor nominal resistance
-    
-    long Resistance;  
-    float Temp;  // Dual-Purpose variable to save space.
-    Resistance = pad * ((1024.0 / rawADC) - 1); 
-    Temp = log(Resistance); // Saving the Log(resistance) so not to calculate  it 4 times later
-    Temp = 1 / (0.001129148 + (0.000234125 * Temp) + (0.0000000876741 * Temp * Temp * Temp));
-    Temp = Temp - 273.15;  // Convert Kelvin to Celsius                      
-    Temp = (Temp * 9.0)/ 5.0 + 32.0;  // Convert Celsius to Fahrenheit
-    return Temp; // Return the Temperature
+    sTempSolar = String(solarTempF);
+    sTempPool = String(poolTempF);
+    sTempRoof = String(roofTempF);
 }
 
 void catchButtonPresses() {
@@ -602,7 +602,7 @@ void trackData(){
 
 void updateDisplay(){ //128x64
     oled.clearDisplay();
-    if (isBright == 1) { //Only display if light sensor activates it
+    //if (isBright == 1) { //Only display if light sensor activates it
         switch(displayIndex){
             case 1: //Debug 1
                 oled.setCursor(0,0);
@@ -650,7 +650,7 @@ void updateDisplay(){ //128x64
                 oled.setTextSize(2);
                 oled.setTextColor(WHITE);
                 oled.println("Temps");
-                oled.setCursor(0,40);
+                oled.setCursor(0,25);
                 oled.setTextSize(1);
                 oled.print("Solar Temp: ");
                 oled.println(sTempSolar);
@@ -688,7 +688,7 @@ void updateDisplay(){ //128x64
                 if( autoOverride ) oled.println("A. OVERRIDE");
                 break;
         }
-        
+
         // Handle screen override logic
         if (oledOverrideTimer != 0) {
             oledOverrideUntil = currentEpochTime + oledOverrideTimer;
@@ -756,6 +756,6 @@ void updateDisplay(){ //128x64
         } else {
             oledOverrideUntil = 0;
         }
-    }
+    //}
     oled.display();
 }
