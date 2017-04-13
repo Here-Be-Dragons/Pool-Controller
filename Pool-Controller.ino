@@ -1,11 +1,11 @@
 // Automated Pool Controller
-// v2.1
+// v2.2
 // by Jerad Jacob
 // Refer to README.md for additional information and latest updates
 // https://github.com/Here-Be-Dragons/Pool-Controller
 
 // This #include statement was automatically added by the Particle IDE.
-#include "Adafruit_SSD1306/Adafruit_SSD1306.h" //OLED
+#include <Adafruit_SSD1306.h> //OLED
 
 ////
 //Start of user configurations
@@ -39,6 +39,12 @@ int16_t timeZone = -5;
 // 30 is a reasonable value if the box is tightly sealed.
 uint16_t dispMinBrightness = 30;
 
+// Set the speed the pump will run for manual pool cleaning
+uint8_t cleanSpeed = 8;
+
+// Set the minimum speed the pump will run when solar is active
+uint8_t minSolarSpeed = 6; 
+
 // Speed activation times in HHMM format. If two speeds have the same
 // time entered, the higher speed takes precidence.  Leave off any
 // preceeding zeros, as they will prevent a proper match.
@@ -69,34 +75,60 @@ uint16_t aSpeed6[] = {    1000,   1300        }; // 2750 RPM
 uint16_t aSpeed7[] = {                        }; // 3000 RPM
 uint16_t aSpeed8[] = {                        }; // 3450 RPM
 
+// Button resistances (found via manual probing, see test-buttons.ino)
+// Only needs to be within +/- 15 of actual measured value to account for noise
+uint16_t buttonResist1 = 2435;
+uint16_t buttonResist2 = 2790;
+uint16_t buttonResist3 = 3360;
+uint16_t buttonResist4 = 3725;
 
 ////
 //End of user configurations
 ////
 
 // This value persists permanently on the Photon even after flashes/reboots
-STARTUP(WiFi.selectAntenna(ANT_EXTERNAL)); // Use external antenna
-//STARTUP(WiFi.selectAntenna(ANT_INTERNAL)); // Use internal antenna
+//STARTUP(WiFi.selectAntenna(ANT_EXTERNAL)); // Use external antenna
+STARTUP(WiFi.selectAntenna(ANT_INTERNAL)); // Use internal antenna
 
 time_t currentEpochTime = 0;    //The current Epoch time set at the beginning of each loop in getTimes()
 uint16_t currentTime = 0;       //Friendly time converted from currentEpochTime via convertTime(), 10:00 PM is referenced as 2200
 uint16_t previousTime = 0;      //The time as of the last loop, set at the bottom of loop()
-double WhTally = 0;             //Daily count of Wh consumption, to upload to Google Docs for tracking
-double gallonTally = 0;         //Daily count of Gallons pumped, to upload to Google Docs for tracking
 char publishString[40];         //Temporary string to use for Particle.publish of WhTally
 uint16_t currentSpeed = 0;      //The current motor speed setting number (1-8)
 uint16_t overrideSpeed;         //Stores the override speed when set manually
 //uint16_t lastChange;          //Time the speed was last changed via scheduler (not currently used)
 uint16_t scheduledSpeed = 0;    //What speed the schedule says you should be at
-uint8_t autoOverride = 1;       //0 for scheduled, 1 for override.  Changes when solar kicks on
 uint8_t manualOverride = 0;     //0 for scheduled, 1 for override.  Changes via user intervention
-time_t overrideStarted;	        //This is set to currentEpochTime when a manual override is triggered
+time_t overrideStarted;         //This is set to currentEpochTime when a manual override is triggered
 time_t overrideEnds = 0;        //This is set to currentEpochTime + overrideLength when a manual override is triggered
 uint32_t overrideLength = 0;    //Recieved override length in seconds.
-time_t previousDataPublish;     //Webhook publish tracking (Epoch)
-bool isBright = 1;              //Tracks whether the screen should be lit or not.
-uint8_t lastDay;                //Used for onceADay()
 
+uint8_t lastDay;                //Used for onceADay()
+uint8_t lastMinute;             //Used for onceAMinute()
+
+//Variables for Photoresistor
+bool isBright = 1;              //Tracks whether the screen should be lit or not.
+
+//Variables for buttons
+long lastDebounceTime = 0;      // the last time the output pin was toggled
+long debounceDelay = 25;        // Adjust for jitter (if you get a false reading increase this number)
+uint8_t buttonState = 0;        // the current reading from the input pin
+uint8_t lastButtonState = 0;    // the previous reading from the input pin
+uint8_t lastActionedButton = 0; // the last button actioned
+
+//Variables for Temperature Sensors
+float poolTempF;
+float solarTempF;
+float roofTempF;
+
+//Variables for Solar Heating
+uint8_t solarControl = 0;      // Manual control of solar. 0 = override to off, 1 = override to on, 2 = Solar Controller
+bool autoOverride = 1;          // Changes when solar kicks on. 0 = scheduled speed, 1 = solar min. speed override
+
+//Variables for reporting
+time_t previousDataPublish;     //Webhook publish tracking (Epoch)
+double WhTally = 0;             //Daily count of Wh consumption, to upload to Google Docs for tracking
+double gallonTally = 0;         //Daily count of Gallons pumped, to upload to Google Docs for tracking
 String sSpeed;
 String sWattage;
 String sFlow;
@@ -105,6 +137,14 @@ String sOverride;
 String sTempSolar;
 String sTempPool;
 String sTempRoof;
+String sButton;
+String sResist;
+
+//Variables for Display
+uint8_t displayIndex = 0;
+time_t oledOverrideUntil = 0;
+uint8_t oledOverrideIndex = 0;
+uint8_t oledOverrideTimer = 0;
 
 // Assign pins to relays
 // D0 reserved for SDA of OLED
@@ -114,9 +154,10 @@ String sTempRoof;
 #define pPumpRelay3     D4
 #define pRelay4         D5
 #define pSolarRelay1    D6
-#define OLED_RESET      D7 //Not sure what this is for, not connected
-#define pButtons        A0
-#define pIllum          A1
+#define OLED_RESET      WKP //Not sure what this is for, not connected
+#define pLED            D7 
+#define pButtons        A1
+#define pIllum          A0
 #define pTempSolar      A2
 #define pTempPool       A3
 #define pTempRoof       A4
@@ -125,16 +166,17 @@ Adafruit_SSD1306 oled(OLED_RESET);
 
 void setup() {
     
-    pinMode(pPumpRelay1,        OUTPUT); // Pump Relay 1
-    pinMode(pPumpRelay2,        OUTPUT); // Pump Relay 2
-    pinMode(pPumpRelay3,        OUTPUT); // Pump Relay 3
+    pinMode(pPumpRelay1,    OUTPUT); // Pump Relay 1
+    pinMode(pPumpRelay2,    OUTPUT); // Pump Relay 2
+    pinMode(pPumpRelay3,    OUTPUT); // Pump Relay 3
     pinMode(pRelay4,        OUTPUT); // Solar Actuator Relay
     pinMode(pSolarRelay1,   INPUT); // Solar panel on pulls this up to 3.3v.
-    pinMode(pButtons,       INPUT);
-    pinMode(pIllum,         INPUT);
-    pinMode(pTempSolar,     INPUT);
-    pinMode(pTempPool,      INPUT);
-    pinMode(pTempRoof,      INPUT);
+    //pinMode(pButtons,       INPUT);
+    //pinMode(pIllum,         INPUT);
+    //pinMode(pTempSolar,     INPUT);
+    //pinMode(pTempPool,      INPUT);
+    //pinMode(pTempRoof,      INPUT);
+    pinMode(pLED, OUTPUT);//DEBUG
 
     oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);    // Initialize with the I2C addr 0x3D (for the 128x64 screen)
     Particle.function("mOverride", mOverride); // Listen for a manual override via remote user input
@@ -146,14 +188,19 @@ void setup() {
     Particle.variable("tempSolar", sTempSolar);
     Particle.variable("tempPool", sTempPool);
     Particle.variable("tempRoof", sTempRoof);
-    for (int x = 3; x >= 0; x--){                   // Give it x seconds to stabilize the RTC and get a time from NTP
+    
+    //for buttons
+    Particle.variable("buttonpr",sButton);
+    Particle.variable("bResistance",sResist);
+   
+    for (int x = 3; x > 0; x--){                   // Give it x seconds to stabilize the RTC and get a time from NTP
         oled.clearDisplay();                       // Clear Screen
         oled.drawRect(0,0,128,64, WHITE);
         oled.drawRect(1,1,127,63, WHITE);
         oled.setTextColor(WHITE);
         oled.setCursor(5,5);
         oled.setTextSize(1);
-        oled.println("Pool-Controller v2.1");
+        oled.println("Pool-Controller v2.2");
         oled.print("    by Jerad Jacob");
         oled.setCursor(30,50);
         oled.print("Startup: ");
@@ -166,15 +213,22 @@ void setup() {
     Time.zone(timeZone);
     
     onceADay();
-    getTimes();	        // Set up initial times
+    getTimes();         // Set up initial times
     returnToSchedule(); // Find what the current speed should be
 }
 
 void loop() {
+    catchButtonPresses();
+    updateDisplay();
+    
     // True once every day
     if (lastDay != Time.day()) {
         onceADay();
         lastDay = Time.day();
+    }
+    if (lastMinute != Time.minute()) {
+        onceAMinute();
+        lastMinute = Time.minute();
     }
     checkIllum();
     getTimes();
@@ -185,23 +239,12 @@ void loop() {
             returnToSchedule();
         }
     }
-
-    //Check for new scheduled speed
-    scheduledSpeed = findScheduledSpeed(currentTime);
-
-    //Check for Solar Speed Override.  Applies in setPumpSpeed()
-    autoOverride = digitalRead(pSolarRelay1);
-
+    
     //Activate new speed if there is one
     setPumpSpeed();
-
-    //Update the oled display
-    updateDisplay();
     
-    getTemps();
-  
-    //Keep track of energy consumption and speed
-    trackData();
+    //Check solar state and set transformer
+    setSolar();
 }
 
 //Finds the current time each loop
@@ -219,6 +262,13 @@ void onceADay(){
         Time.beginDST();
     }
     
+}
+
+void onceAMinute(){
+    //Check for new scheduled speed
+    scheduledSpeed = findScheduledSpeed(currentTime);
+    getTemps();
+    trackData();
 }
 
 uint16_t convertTime(uint32_t testTime){
@@ -283,8 +333,8 @@ void setPumpSpeed() {
     }
   
     //If auto override is active, set a minimum speed
-    if( autoOverride == 1 && newSpeed < 6 ){
-        newSpeed = 6;
+    if( autoOverride == 1 && newSpeed < minSolarSpeed ){
+        newSpeed = minSolarSpeed;
     }
     switch (newSpeed) {
         case 1:
@@ -327,7 +377,7 @@ void setPumpSpeed() {
             digitalWrite(pPumpRelay2, HIGH);
             digitalWrite(pPumpRelay3, HIGH);
             break;
-	    //This condition should never happen, but default to Speed 1 if it does
+        //This condition should never happen, but default to Speed 1 if it does
         default:
             digitalWrite(pPumpRelay1, LOW );
             digitalWrite(pPumpRelay2, LOW );
@@ -338,25 +388,44 @@ void setPumpSpeed() {
     currentSpeed = newSpeed; //Update current speed value
 }
 
-int mOverride(String command) { //Triggered by SmartThings
+void setSolar() {
+    //Check Solar Controller for request to heat.  Applies in setPumpSpeed()
+    bool solarRequest = digitalRead(pSolarRelay1);
+    
+    if (solarControl == 0) { // Manual Override: Disable Solar
+        digitalWrite(pRelay4, LOW);
+        autoOverride = 0;
+    } else if (solarControl == 1) { // Manual Override: Enable Solar
+        digitalWrite(pRelay4, HIGH);
+        autoOverride = 1;
+    } else { // System follows ext. controller
+        if (solarRequest == 1){
+            digitalWrite(pRelay4, HIGH);
+            autoOverride = 1;
+        } else {
+            digitalWrite(pRelay4, LOW);
+            autoOverride = 0;
+        }
+    }
+}
+
+int mOverride(String command) { //Manual Trigger (SmartThings, button press, etc)
     char strBuffer[63] = ""; //Max length of the Function String is 63 characters
     command.toCharArray(strBuffer, 63);
     overrideSpeed = atoi(strtok(strBuffer, "~"));
     overrideLength = atoi(strtok(NULL, "~"));
-    if( overrideSpeed <= 8 && overrideSpeed >= 1 ){ //These are direct speeds
+    if (overrideSpeed <= 8 && overrideSpeed >= 1){ //These are direct speeds
         manualOverride = 1;
         overrideStarted = currentEpochTime;
-        if( overrideLength == 0 ){ //Use default override length
+        if (overrideLength == 0 ){ //Use default override length
             overrideEnds = currentEpochTime + defaultOverride;
         }else{
             overrideEnds = currentEpochTime + overrideLength;
         }
         setPumpSpeed();
     } else if( overrideSpeed == 9 ){ //9 is a "return to schedule"
-        manualOverride = 0;
         returnToSchedule();
-    } else { //10 or any other value is a poll for current speed, no changes
-        //Just a poll, no changes
+    } else { //10 (or any other value) is a poll for current speed, no changes
     }
     // DEBUG
     String sSpeedRecieved = String(overrideSpeed);
@@ -373,14 +442,10 @@ void returnToSchedule() {
     uint32_t testTimeEpoch = currentEpochTime;
     uint16_t testTime;
     while( scheduledSpeed == 0 ) {
-	    testTime = convertTime(testTimeEpoch);
+        testTime = convertTime(testTimeEpoch);
         scheduledSpeed = findScheduledSpeed(testTime);
         testTimeEpoch-=60;
     }
-    oled.print ("SUCCESS! ");
-    oled.print("Speed: ");
-    oled.println(scheduledSpeed);
-    oled.display();
     manualOverride = 0;
     overrideSpeed = 0;
     overrideStarted = 0;
@@ -399,8 +464,6 @@ void checkIllum(){
 }
 
 void getTemps(){
-    float poolTempF,solarTempF,roofTempF;
-    
     uint16_t solarReadRaw = analogRead(pTempSolar);
     uint16_t poolReadRaw = analogRead(pTempPool);
     uint16_t roofReadRaw = analogRead(pTempRoof);
@@ -432,62 +495,267 @@ float thermistor(int rawADC) {
     return Temp; // Return the Temperature
 }
 
-void trackData(){
-    if (currentTime != previousTime) {
-        if (currentTime == 0) {
-	        sprintf(publishString, "%.5f", WhTally);     // Convert double WhTally to char[40] for Particle.publish()
-	        Particle.publish("24Hr_kWh", publishString);
-            sprintf(publishString, "%.5f", gallonTally); // Convert double gallonTally to char[40] for Particle.publish()
-            Particle.publish("24Hr_gal", publishString); 
-	        WhTally = 0;
-            gallonTally = 0;
+void catchButtonPresses() {
+    // read the state of the switch into a local variable:
+    uint16_t reading = analogRead(pButtons);
+    sResist = String(reading);
+    uint8_t tmpButtonState = 0;
+    
+    if (reading > (buttonResist1 - 15) && reading < (buttonResist1 + 15)) {
+        tmpButtonState = 1;
+    } else if (reading > buttonResist2 - 15 && reading < buttonResist2 + 15) {
+        tmpButtonState = 2;
+    } else if (reading > buttonResist3 - 15 && reading < buttonResist3 + 15) {
+        tmpButtonState = 3;
+    } else if (reading > buttonResist4 - 15 && reading < buttonResist4 + 15) {
+        tmpButtonState = 4;
+    } else {
+        tmpButtonState = 0; //No button is pressed;
+    }
+    
+    // If the switch changed (due to noise OR pressing)
+    if (tmpButtonState != lastButtonState) {
+        // reset the debouncing timer
+        lastDebounceTime = millis();
+    }
+
+    if ((millis() - lastDebounceTime) > debounceDelay) {
+        // Assume this state is legitimate, so set it as buttonState
+        buttonState = tmpButtonState;
+    }
+    
+    if (buttonState != lastActionedButton) {
+        switch (buttonState) {
+            case 1: //Display
+                digitalWrite(pLED, HIGH);
+                sButton = String("BUTTON 1: Display");
+                displayIndex++;
+                displayIndex %= 4;
+                break;
+            case 2: //Stop
+                digitalWrite(pLED, HIGH);
+                sButton = String("BUTTON 2: Stop");
+                if (currentSpeed != 1 || (currentSpeed == 1 && oledOverrideUntil == 0)) {
+                    mOverride("1");
+                    oledOverrideIndex = 1;
+                    oledOverrideTimer = 5;
+                } else if (currentSpeed == 1 || oledOverrideUntil != 0) {
+                    overrideEnds = overrideEnds + defaultOverride;
+                    oledOverrideIndex = 1;
+                    oledOverrideTimer = 5;
+                }
+                break;
+            case 3: //Clean (Speed 8)
+                digitalWrite(pLED, HIGH);
+                sButton = String("BUTTON 3: Clean");
+                if (currentSpeed != cleanSpeed || (currentSpeed == cleanSpeed && oledOverrideUntil == 0)) {
+                    String i = String(cleanSpeed);
+                    mOverride(i);
+                    oledOverrideIndex = 2;
+                    oledOverrideTimer = 5;
+                } else if (currentSpeed == cleanSpeed || oledOverrideUntil != 0) {
+                    overrideEnds = overrideEnds + defaultOverride;
+                    oledOverrideIndex = 2;
+                    oledOverrideTimer = 5;
+                }
+                break;
+            case 4: //Resume
+                digitalWrite(pLED, HIGH);
+                sButton = String("BUTTON 4: Resume");
+                overrideEnds = 0;
+                oledOverrideIndex = 3;
+                oledOverrideTimer = 2;
+                break;
+            default:
+                digitalWrite(pLED, LOW);
+                sButton = String("---");
+                break;
         }
-        WhTally += (double) ( energyConsum[currentSpeed-1] / 60 ); // Add 1 minute worth of kWh
-        gallonTally += (double) ( flowCalc[currentSpeed-1] );      // Add 1 minute worth of water flow
-        previousTime = currentTime;
+        lastActionedButton = buttonState;
     }
-    if (previousDataPublish + 300 <= currentEpochTime) { // Publish to thingspeak channel every 5 minutes
-        sSpeed = String(speedRPM[currentSpeed - 1]);
-        sWattage = String(energyConsum[currentSpeed - 1]);
-        sFlow = String(flowCalc[currentSpeed - 1]);
-        sSolar = String(autoOverride);
-        sOverride = String(manualOverride);
-        sTempSolar = String(poolTempF);
-        sTempPool = String(poolTempF);
-        sTempRoof = String(poolTempF);
-        Particle.publish("poolLog", "{ \"1\": \"" + sSpeed + "\", \"2\": \"" + sWattage + "\", \"3\": \"" + sFlow + "\", \"4\": \"" + sSolar + "\" }", PRIVATE);
-        previousDataPublish = currentEpochTime;
+    lastButtonState = tmpButtonState;
+}
+
+void trackData(){
+    if (currentTime == 0) { //runs once at midnight
+        sprintf(publishString, "%.5f", WhTally);     // Convert double WhTally to char[40] for Particle.publish()
+        Particle.publish("24Hr_kWh", publishString);
+        sprintf(publishString, "%.5f", gallonTally); // Convert double gallonTally to char[40] for Particle.publish()
+        Particle.publish("24Hr_gal", publishString); 
+        WhTally = 0;
+        gallonTally = 0;
     }
+    WhTally += (double) ( energyConsum[currentSpeed-1] / 60 ); // Add 1 minute worth of kWh
+    gallonTally += (double) ( flowCalc[currentSpeed-1] );      // Add 1 minute worth of water flow
+    //previousTime = currentTime;
+    sSpeed = String(speedRPM[currentSpeed - 1]);
+    sWattage = String(energyConsum[currentSpeed - 1]);
+    sFlow = String(flowCalc[currentSpeed - 1]);
+    sSolar = String(autoOverride);
+    sOverride = String(manualOverride);
+    sTempSolar = String(solarTempF);
+    sTempPool = String(poolTempF);
+    sTempRoof = String(roofTempF);
+    //Particle.publish("DpoolLog", "{ \"1\": \"" + sSpeed + "\", \"2\": \"" + sWattage + "\", \"3\": \"" + sFlow + "\", \"4\": \"" + sSolar + "\" }", PRIVATE);
+    //previousDataPublish = currentEpochTime;
 }
 
 void updateDisplay(){ //128x64
     oled.clearDisplay();
     if (isBright == 1) { //Only display if light sensor activates it
-        oled.drawRect(80,0,48,55, WHITE);
-        oled.drawRect(81,1,46,53, WHITE);
-        oled.setTextSize(6);
-        oled.setTextColor(WHITE);
-        oled.setCursor(88,6);
-        oled.print(currentSpeed);
-        oled.setTextSize(1);
-        oled.setCursor(80,57);
-        oled.print(speedRPM[currentSpeed-1]);
-        oled.print(" RPM");
-        oled.setCursor(0,0);
-        oled.print("Time: ");
-        oled.println(currentTime);
-        oled.print("Wh: ");
-        oled.println(WhTally);
-        oled.print("Scheduled: ");
-        oled.println(scheduledSpeed);
-        if( manualOverride ) {
-            oled.println("MANUAL OVERRIDE:");
-            oled.print("Spd: ");
-            oled.println(overrideSpeed);
-            oled.print("Timer: ");
-            oled.println(overrideEnds - currentEpochTime);
+        switch(displayIndex){
+            case 1: //Debug 1
+                oled.setCursor(0,0);
+                oled.setTextSize(1);
+                oled.setTextColor(WHITE);
+                oled.print("Time: ");
+                oled.println(currentTime);
+                oled.print("Current Speed: ");
+                oled.println(currentSpeed);
+                oled.print("Wh: ");
+                oled.println(WhTally);
+                if( manualOverride ) {
+                    oled.println("MANUAL OVERRIDE:");
+                    oled.print("Timer: ");
+                    oled.println(overrideEnds - currentEpochTime);
+                    oled.print("Scheduled Speed: ");
+                    oled.println(scheduledSpeed);
+                }
+                if( autoOverride ) {
+                    oled.println("AUTO OVERRIDE");
+                    oled.print("Scheduled Speed: ");
+                    oled.println(scheduledSpeed);
+                }
+                break;
+            case 2: //Debug reporting
+                oled.setCursor(0,0);
+                oled.setTextSize(1);
+                oled.setTextColor(WHITE);
+                oled.println("REPORT DEBUGGING PG.1");
+                oled.drawLine(0, 8, 127, 8, WHITE);
+                oled.setCursor(0,10);
+                oled.print("Spd: ");
+                oled.println(sSpeed);
+                oled.print("Wattage: ");
+                oled.println(sWattage);
+                oled.print("Flow: ");
+                oled.println(sFlow);
+                oled.print("SolarReq: ");
+                oled.println(sSolar);
+                oled.print("ManualOver: ");
+                oled.println(sOverride);
+                break;
+            case 3: //Temps
+                oled.setCursor(30,0);
+                oled.setTextSize(2);
+                oled.setTextColor(WHITE);
+                oled.println("Temps");
+                oled.setCursor(0,40);
+                oled.setTextSize(1);
+                oled.print("Solar Temp: ");
+                oled.println(sTempSolar);
+                oled.print("Pool Temp:  ");
+                oled.println(sTempPool);
+                oled.print("Roof Temp:  ");
+                oled.println(sTempRoof);
+                break;
+            default:
+                oled.drawRect(80,0,48,55, WHITE);
+                oled.drawRect(81,1,46,53, WHITE);
+                oled.setTextSize(6);
+                oled.setTextColor(WHITE);
+                oled.setCursor(88,6);
+                oled.print(currentSpeed);
+                oled.setTextSize(1);
+                oled.setTextColor(WHITE);
+                oled.setCursor(80,57);
+                oled.print(speedRPM[currentSpeed-1]);
+                oled.print(" RPM");
+                oled.setCursor(0,0);
+                oled.print("Time: ");
+                oled.println(currentTime);
+                oled.print("Wh: ");
+                oled.println(WhTally);
+                oled.print("Scheduled: ");
+                oled.println(scheduledSpeed);
+                if( manualOverride ) {
+                    oled.println("M. OVERRIDE:");
+                    oled.print("Spd: ");
+                    oled.println(overrideSpeed);
+                    oled.print("Timer: ");
+                    oled.println(overrideEnds - currentEpochTime);
+                }
+                if( autoOverride ) oled.println("A. OVERRIDE");
+                break;
         }
-        if( autoOverride ) oled.println("AUTO OVERRIDE");
+        
+        // Handle screen override logic
+        if (oledOverrideTimer != 0) {
+            oledOverrideUntil = currentEpochTime + oledOverrideTimer;
+            oledOverrideTimer = 0;
+        }
+        if (currentEpochTime <= oledOverrideUntil) {
+            switch(oledOverrideIndex){
+                case 1: //Speed Override
+                    oled.clearDisplay();
+                    oled.drawLine(0, 0, 127, 0, WHITE);
+                    oled.drawLine(0, 1, 127, 1, WHITE);
+                    oled.setCursor(40,10);
+                    oled.setTextSize(2);
+                    oled.setTextColor(WHITE);
+                    oled.print("STOP");
+                    oled.setCursor(1,27);
+                    oled.setTextSize(1);
+                    oled.print("Override Timer: ");
+                    oled.println(overrideEnds - currentEpochTime);
+                    oled.setCursor(1,44);
+                    oled.print("Press \"Clean\" again");
+                    oled.setCursor(1,50);
+                    oled.print("to increase time...");
+                    oled.drawLine(0, 62, 127, 62, WHITE);
+                    oled.drawLine(0, 63, 127, 63, WHITE);
+                    break;
+                case 2: //Speed Override
+                    oled.clearDisplay();
+                    oled.drawLine(0, 0, 127, 0, WHITE);
+                    oled.drawLine(0, 1, 127, 1, WHITE);
+                    oled.setCursor(15,10);
+                    oled.setTextSize(2);
+                    oled.setTextColor(WHITE);
+                    oled.print("CLEANING");
+                    oled.setCursor(1,27);
+                    oled.setTextSize(1);
+                    oled.print("Override Timer: ");
+                    oled.println(overrideEnds - currentEpochTime);
+                    oled.setCursor(1,44);
+                    oled.print("Press \"Clean\" again");
+                    oled.setCursor(1,50);
+                    oled.print("to increase time...");
+                    oled.drawLine(0, 62, 127, 62, WHITE);
+                    oled.drawLine(0, 63, 127, 63, WHITE);
+                    break;
+                case 3: //Speed Override
+                    oled.clearDisplay();
+                    oled.drawLine(0, 0, 127, 0, WHITE);
+                    oled.drawLine(0, 1, 127, 1, WHITE);
+                    oled.setCursor(12,10);
+                    oled.setTextSize(2);
+                    oled.setTextColor(WHITE);
+                    oled.print("Returning ");
+                    oled.setCursor(0,27);
+                    oled.print("    to    ");
+                    oled.setCursor(0,44);
+                    oled.print(" Schedule ");
+                    oled.drawLine(0, 62, 127, 62, WHITE);
+                    oled.drawLine(0, 63, 127, 63, WHITE);
+                    break;
+                default:
+                    //no display override
+                    break;
+            }
+        } else {
+            oledOverrideUntil = 0;
+        }
     }
     oled.display();
 }
