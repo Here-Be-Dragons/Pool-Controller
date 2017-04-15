@@ -40,7 +40,7 @@ int16_t timeZone = -5;
 
 // Calibration for light sensor.
 // 30 is a reasonable value if the box is tightly sealed.
-uint16_t dispMinBrightness = 30;
+uint16_t dispMinBrightness = 100;
 
 // Set the speed the pump will run for manual pool cleaning
 uint8_t cleanSpeed = 8;
@@ -147,6 +147,7 @@ String sTempPool;
 String sTempRoof;
 String sButton;
 String sResist;
+String sIllum;
 
 //Variables for Display
 uint8_t displayIndex = 0;
@@ -182,8 +183,8 @@ Adafruit_SSD1306 oled(OLED_RESET);
 // 6. bCoef: Beta coefficient of the thermistor; usually 3435 or 3950 (will be documented with the thermistor)
 // 7. samples: Number of analog samples to average (for smoothing)
 // 8. sampleDelay: Milliseconds between analog samples (for smoothing)
-Thermistor solarTherm = Thermistor(pTempSolar, rSolar, 4095, 10000, 25, 3921, 3, 5);
-Thermistor poolTherm  = Thermistor(pTempPool,  rPool,  4095, 10000, 25, 3921, 3, 5);
+Thermistor solarTherm = Thermistor(pTempSolar, rSolar, 4095, 10800, 25, 3950, 3, 5); //5 8
+Thermistor poolTherm  = Thermistor(pTempPool,  rPool,  4095, 10800, 25, 3850, 3, 5);
 Thermistor roofTherm  = Thermistor(pTempRoof,  rRoof,  4095, 10000, 25, 3921, 3, 5);
 
 void setup() {
@@ -477,12 +478,13 @@ void returnToSchedule() {
 // Prevent OLED burn-in by turning off the screen when
 // the door is shut.
 void checkIllum(){
-    uint8_t currentIllum = analogRead(pIllum);
+    uint16_t currentIllum = analogRead(pIllum);
     if (currentIllum > dispMinBrightness) {
         isBright = 1;
     } else {
         isBright = 0;
     }
+    sIllum = String(currentIllum);
 }
 
 void getTemps(){
@@ -602,7 +604,7 @@ void trackData(){
 
 void updateDisplay(){ //128x64
     oled.clearDisplay();
-    //if (isBright == 1) { //Only display if light sensor activates it
+    if (isBright == 1) { //Only display if light sensor activates it
         switch(displayIndex){
             case 1: //Debug 1
                 oled.setCursor(0,0);
@@ -644,6 +646,8 @@ void updateDisplay(){ //128x64
                 oled.println(sSolar);
                 oled.print("ManualOver: ");
                 oled.println(sOverride);
+                oled.print("illum: ");
+                oled.println(sIllum);
                 break;
             case 3: //Temps
                 oled.setCursor(30,0);
@@ -756,6 +760,6 @@ void updateDisplay(){ //128x64
         } else {
             oledOverrideUntil = 0;
         }
-    //}
+    }
     oled.display();
 }
