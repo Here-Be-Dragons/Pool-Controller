@@ -5248,7 +5248,7 @@ SMT- SWCH-08247</description>
 <sheets>
 <sheet>
 <plain>
-<text x="233.68" y="-38.1" size="1.778" layer="97">2.1</text>
+<text x="233.68" y="-38.1" size="1.778" layer="97">2.2</text>
 </plain>
 <instances>
 <instance part="PHOTON" gate="G$1" x="147.32" y="81.28"/>
@@ -5280,8 +5280,8 @@ SMT- SWCH-08247</description>
 <instance part="S4" gate="S" x="104.14" y="-17.78"/>
 <instance part="R10" gate="G$1" x="119.38" y="20.32" rot="R180"/>
 <instance part="J3" gate="G$1" x="223.52" y="71.12" rot="R180"/>
-<instance part="GND8" gate="1" x="236.22" y="76.2"/>
-<instance part="SUPPLY8" gate="G$1" x="236.22" y="63.5"/>
+<instance part="GND8" gate="1" x="215.9" y="60.96"/>
+<instance part="SUPPLY8" gate="G$1" x="215.9" y="76.2"/>
 <instance part="J4" gate="G$1" x="226.06" y="96.52" rot="R180"/>
 <instance part="J2" gate="G$1" x="73.66" y="86.36"/>
 <instance part="J5" gate="G$1" x="73.66" y="71.12"/>
@@ -5329,14 +5329,6 @@ SMT- SWCH-08247</description>
 <wire x1="78.74" y1="10.16" x2="78.74" y2="5.08" width="0.1524" layer="91"/>
 </segment>
 <segment>
-<pinref part="J3" gate="G$1" pin="1"/>
-<wire x1="218.44" y1="76.2" x2="215.9" y2="76.2" width="0.1524" layer="91"/>
-<wire x1="215.9" y1="76.2" x2="215.9" y2="81.28" width="0.1524" layer="91"/>
-<wire x1="215.9" y1="81.28" x2="236.22" y2="81.28" width="0.1524" layer="91"/>
-<pinref part="GND8" gate="1" pin="GND"/>
-<wire x1="236.22" y1="81.28" x2="236.22" y2="78.74" width="0.1524" layer="91"/>
-</segment>
-<segment>
 <pinref part="GND9" gate="1" pin="GND"/>
 <pinref part="R12" gate="G$1" pin="1"/>
 <wire x1="236.22" y1="101.6" x2="236.22" y2="99.06" width="0.1524" layer="91"/>
@@ -5372,6 +5364,11 @@ SMT- SWCH-08247</description>
 <wire x1="50.8" y1="55.88" x2="45.72" y2="55.88" width="0.1524" layer="91"/>
 <pinref part="GND6" gate="1" pin="GND"/>
 <wire x1="45.72" y1="55.88" x2="45.72" y2="53.34" width="0.1524" layer="91"/>
+</segment>
+<segment>
+<pinref part="J3" gate="G$1" pin="6"/>
+<pinref part="GND8" gate="1" pin="GND"/>
+<wire x1="218.44" y1="63.5" x2="215.9" y2="63.5" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$3" class="0">
@@ -5421,37 +5418,9 @@ SMT- SWCH-08247</description>
 <wire x1="187.96" y1="33.02" x2="187.96" y2="38.1" width="0.1524" layer="91"/>
 </segment>
 <segment>
-<pinref part="J3" gate="G$1" pin="6"/>
-<wire x1="218.44" y1="63.5" x2="215.9" y2="63.5" width="0.1524" layer="91"/>
-<wire x1="215.9" y1="63.5" x2="215.9" y2="55.88" width="0.1524" layer="91"/>
-<wire x1="215.9" y1="55.88" x2="236.22" y2="55.88" width="0.1524" layer="91"/>
+<pinref part="J3" gate="G$1" pin="1"/>
 <pinref part="SUPPLY8" gate="G$1" pin="VCC"/>
-<wire x1="236.22" y1="55.88" x2="236.22" y2="63.5" width="0.1524" layer="91"/>
-</segment>
-</net>
-<net name="N$1" class="0">
-<segment>
-<pinref part="PHOTON" gate="G$1" pin="D2"/>
-<wire x1="165.1" y1="63.5" x2="213.36" y2="63.5" width="0.1524" layer="91"/>
-<wire x1="213.36" y1="63.5" x2="213.36" y2="66.04" width="0.1524" layer="91"/>
-<pinref part="J3" gate="G$1" pin="5"/>
-<wire x1="213.36" y1="66.04" x2="218.44" y2="66.04" width="0.1524" layer="91"/>
-</segment>
-</net>
-<net name="N$2" class="0">
-<segment>
-<pinref part="PHOTON" gate="G$1" pin="D3"/>
-<wire x1="165.1" y1="68.58" x2="218.44" y2="68.58" width="0.1524" layer="91"/>
-<pinref part="J3" gate="G$1" pin="4"/>
-</segment>
-</net>
-<net name="N$7" class="0">
-<segment>
-<pinref part="PHOTON" gate="G$1" pin="D5"/>
-<wire x1="165.1" y1="78.74" x2="213.36" y2="78.74" width="0.1524" layer="91"/>
-<wire x1="213.36" y1="78.74" x2="213.36" y2="73.66" width="0.1524" layer="91"/>
-<pinref part="J3" gate="G$1" pin="2"/>
-<wire x1="213.36" y1="73.66" x2="218.44" y2="73.66" width="0.1524" layer="91"/>
+<wire x1="218.44" y1="76.2" x2="215.9" y2="76.2" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$9" class="0">
@@ -5518,15 +5487,6 @@ SMT- SWCH-08247</description>
 <junction x="96.52" y="38.1"/>
 <pinref part="PHOTON" gate="G$1" pin="A1"/>
 <wire x1="96.52" y1="58.42" x2="129.54" y2="58.42" width="0.1524" layer="91"/>
-</segment>
-</net>
-<net name="N$6" class="0">
-<segment>
-<wire x1="210.82" y1="73.66" x2="210.82" y2="71.12" width="0.1524" layer="91"/>
-<pinref part="J3" gate="G$1" pin="3"/>
-<wire x1="210.82" y1="71.12" x2="218.44" y2="71.12" width="0.1524" layer="91"/>
-<pinref part="PHOTON" gate="G$1" pin="D4"/>
-<wire x1="165.1" y1="73.66" x2="210.82" y2="73.66" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$11" class="0">
@@ -5655,6 +5615,40 @@ SMT- SWCH-08247</description>
 <wire x1="93.98" y1="101.6" x2="81.28" y2="101.6" width="0.1524" layer="91"/>
 <wire x1="93.98" y1="106.68" x2="93.98" y2="101.6" width="0.1524" layer="91"/>
 <junction x="93.98" y="101.6"/>
+</segment>
+</net>
+<net name="N$1" class="0">
+<segment>
+<pinref part="PHOTON" gate="G$1" pin="D2"/>
+<wire x1="165.1" y1="63.5" x2="203.2" y2="63.5" width="0.1524" layer="91"/>
+<wire x1="203.2" y1="63.5" x2="203.2" y2="66.04" width="0.1524" layer="91"/>
+<pinref part="J3" gate="G$1" pin="5"/>
+<wire x1="203.2" y1="66.04" x2="218.44" y2="66.04" width="0.1524" layer="91"/>
+</segment>
+</net>
+<net name="N$2" class="0">
+<segment>
+<pinref part="PHOTON" gate="G$1" pin="D3"/>
+<pinref part="J3" gate="G$1" pin="4"/>
+<wire x1="165.1" y1="68.58" x2="218.44" y2="68.58" width="0.1524" layer="91"/>
+</segment>
+</net>
+<net name="N$6" class="0">
+<segment>
+<pinref part="PHOTON" gate="G$1" pin="D4"/>
+<wire x1="165.1" y1="73.66" x2="198.12" y2="73.66" width="0.1524" layer="91"/>
+<wire x1="198.12" y1="73.66" x2="198.12" y2="71.12" width="0.1524" layer="91"/>
+<pinref part="J3" gate="G$1" pin="3"/>
+<wire x1="198.12" y1="71.12" x2="218.44" y2="71.12" width="0.1524" layer="91"/>
+</segment>
+</net>
+<net name="N$7" class="0">
+<segment>
+<pinref part="PHOTON" gate="G$1" pin="D5"/>
+<wire x1="165.1" y1="78.74" x2="203.2" y2="78.74" width="0.1524" layer="91"/>
+<wire x1="203.2" y1="78.74" x2="203.2" y2="73.66" width="0.1524" layer="91"/>
+<pinref part="J3" gate="G$1" pin="2"/>
+<wire x1="203.2" y1="73.66" x2="218.44" y2="73.66" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>
