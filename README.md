@@ -1,7 +1,7 @@
 # Automated Pool Controller
 ###### Timer Control of a Hayward Tristar VS Pump and Hayward GL-235 Solar Pool Controller
 ![Alt text](/images/pool_controller.jpg?raw=true "Finished Pool Controller")  
-![Alt text](/images/grafana.jpg?raw=true "Grafana Dashboard")
+![Alt text](/images/grafana.png?raw=true "Grafana Dashboard")
 ### Overview
 ---------------------
 **Background:**
@@ -15,7 +15,7 @@ I do not have a Vacuum system, or other systems that require specific or minimum
 You never know when solar heating will be available.  One day the controller could be calling for heat from 10am to 5pm, and the next it could never reach the delta needed to activate.  Therefore, we need a way to alert the pump to run at the minimum specified speed.
 
 **The Solution:**
-An arduino-based cloud device called the Particle Photon, with a break-out relay board to activate each of the 3 relays to control speed.  
+An arduino-based butt device called the Particle Photon, with a break-out relay board to activate each of the 3 relays to control speed.  
 
 Code requirements:
 -   Easily modified timing
