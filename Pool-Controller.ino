@@ -106,7 +106,7 @@ uint16_t currentSpeed = 0;      //The current motor speed setting number (1-8)
 uint16_t overrideSpeed;         //Stores the override speed when set manually
 //uint16_t lastChange;          //Time the speed was last changed via scheduler (not currently used)
 uint16_t scheduledSpeed = 0;    //What speed the schedule says you should be at
-uint8_t manualOverride = 0;     //0 for scheduled, 1 for override.  Changes via user intervention
+uint8_t manualOverride = 0;     //0 for scheduled, 1 for override with schedule, 2 for indefinite override.  Changes via user intervention
 time_t overrideStarted;         //This is set to currentEpochTime when a manual override is triggered
 time_t overrideEnds = 0;        //This is set to currentEpochTime + overrideLength when a manual override is triggered
 uint32_t overrideLength = 0;    //Recieved override length in seconds.
@@ -148,6 +148,8 @@ String sTempRoof;
 String sButton;
 String sResist;
 String sIllum;
+String sOverrideEnds;
+String sValuesST;
 
 //Variables for Display
 uint8_t displayIndex = 0;
@@ -184,7 +186,7 @@ Adafruit_SSD1306 oled(OLED_RESET);
 // 7. samples: Number of analog samples to average (for smoothing)
 // 8. sampleDelay: Milliseconds between analog samples (for smoothing)
 Thermistor solarTherm = Thermistor(pTempSolar, rSolar, 4095, 10800, 25, 3950, 3, 5); //5 8
-Thermistor poolTherm  = Thermistor(pTempPool,  rPool,  4095, 10800, 25, 3850, 3, 5);
+Thermistor poolTherm  = Thermistor(pTempPool,  rPool,  4095, 10900, 25, 3850, 3, 5);
 Thermistor roofTherm  = Thermistor(pTempRoof,  rRoof,  4095, 10000, 25, 3921, 3, 5);
 
 void setup() {
@@ -193,12 +195,7 @@ void setup() {
     pinMode(pPumpRelay2,    OUTPUT); // Pump Relay 2
     pinMode(pPumpRelay3,    OUTPUT); // Pump Relay 3
     pinMode(pRelay4,        OUTPUT); // Solar Actuator Relay
-    pinMode(pSolarRelay1,   INPUT); // Solar panel on pulls this up to 3.3v.
-    //pinMode(pButtons,       INPUT);
-    //pinMode(pIllum,         INPUT);
-    //pinMode(pTempSolar,     INPUT);
-    //pinMode(pTempPool,      INPUT);
-    //pinMode(pTempRoof,      INPUT);
+    //pinMode(pSolarRelay1,   INPUT); // Solar panel on pulls this up to 3.3v.
     pinMode(pLED, OUTPUT);//DEBUG
 
     oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);    // Initialize with the I2C addr 0x3D (for the 128x64 screen)
@@ -211,10 +208,10 @@ void setup() {
     Particle.variable("tempSolar", sTempSolar);
     Particle.variable("tempPool", sTempPool);
     Particle.variable("tempRoof", sTempRoof);
+    Particle.variable("valuesST", sValuesST); // Values to export to SmartThings Device Type
     
-    //for buttons
-    Particle.variable("buttonpr",sButton);
-    Particle.variable("bResistance",sResist);
+    //DEBUG
+    //Particle.variable("illumination",sIllum);
    
     for (int x = 3; x > 0; x--){                   // Give it x seconds to stabilize the RTC and get a time from NTP
         oled.clearDisplay();                       // Clear Screen
@@ -247,11 +244,9 @@ void loop() {
     // True once every day
     if (lastDay != Time.day()) {
         onceADay();
-        lastDay = Time.day();
     }
     if (lastMinute != Time.minute()) {
         onceAMinute();
-        lastMinute = Time.minute();
     }
     checkIllum();
     getTimes();
@@ -284,7 +279,7 @@ void onceADay(){
     }else{
         Time.beginDST();
     }
-    
+    lastDay = Time.day();
 }
 
 void onceAMinute(){
@@ -292,6 +287,7 @@ void onceAMinute(){
     scheduledSpeed = findScheduledSpeed(currentTime);
     getTemps();
     trackData();
+    lastMinute = Time.minute();
 }
 
 uint16_t convertTime(uint32_t testTime){
@@ -351,7 +347,7 @@ void setPumpSpeed() {
     newSpeed = scheduledSpeed;
   
     //Set Manual Override Speed to newSpeed if active
-    if( manualOverride == 1 ){
+    if( manualOverride != 0 ){
         newSpeed = overrideSpeed;
     }
   
@@ -437,26 +433,32 @@ int mOverride(String command) { //Manual Trigger (SmartThings, button press, etc
     command.toCharArray(strBuffer, 63);
     overrideSpeed = atoi(strtok(strBuffer, "~"));
     overrideLength = atoi(strtok(NULL, "~"));
+    manualOverride = atoi(strtok(NULL, "~"));
+    if (overrideSpeed == 0 && manualOverride == 1) { //Add the specified time to existing override
+        overrideEnds = overrideEnds + overrideLength;
+    }
     if (overrideSpeed <= 8 && overrideSpeed >= 1){ //These are direct speeds
-        manualOverride = 1;
-        overrideStarted = currentEpochTime;
-        if (overrideLength == 0 ){ //Use default override length
-            overrideEnds = currentEpochTime + defaultOverride;
-        }else{
-            overrideEnds = currentEpochTime + overrideLength;
+        if (manualOverride == 1) {
+            overrideStarted = currentEpochTime;
+            if (overrideLength == 0 ){ //Use default override length
+                overrideEnds = currentEpochTime + defaultOverride;
+            }else{
+                overrideEnds = currentEpochTime + overrideLength;
+            }
         }
         setPumpSpeed();
-    } else if( overrideSpeed == 9 ){ //9 is a "return to schedule"
+    }
+    if( manualOverride == 0 ){ //0 is a "return to schedule"
         returnToSchedule();
-    } else { //10 (or any other value) is a poll for current speed, no changes
     }
     // DEBUG
     String sSpeedRecieved = String(overrideSpeed);
     String sTimeRecieved = String(overrideLength);
     String sOverride = String(manualOverride);
-    Particle.publish("Speed_Recieved", sSpeedRecieved + "~" + sTimeRecieved);
+    Particle.publish("Speed_Recieved", sSpeedRecieved + ", " + sTimeRecieved + ", " + sOverride);
     // END DEBUG
     overrideLength = 0; //Reset overrideLength
+    trackData();
     return speedRPM[currentSpeed-1];
 }
 
@@ -493,8 +495,8 @@ void getTemps(){
     roofTempF = roofTherm.readTempF();
     
     sTempSolar = String(solarTempF);
-    sTempPool = String(poolTempF);
-    sTempRoof = String(roofTempF);
+	sTempPool = String(poolTempF);
+	sTempRoof = String(roofTempF);
 }
 
 void catchButtonPresses() {
@@ -598,8 +600,8 @@ void trackData(){
     sTempSolar = String(solarTempF);
     sTempPool = String(poolTempF);
     sTempRoof = String(roofTempF);
-    //Particle.publish("DpoolLog", "{ \"1\": \"" + sSpeed + "\", \"2\": \"" + sWattage + "\", \"3\": \"" + sFlow + "\", \"4\": \"" + sSolar + "\" }", PRIVATE);
-    //previousDataPublish = currentEpochTime;
+    sOverrideEnds = String(convertTime(currentEpochTime));
+    sValuesST = sOverride + "~" + sOverrideEnds + "~" + String(currentSpeed) + "~" + sSpeed + "~" + sWattage + "~" + sFlow;
 }
 
 void updateDisplay(){ //128x64
