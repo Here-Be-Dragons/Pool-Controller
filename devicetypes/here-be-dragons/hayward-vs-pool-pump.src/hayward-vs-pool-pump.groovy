@@ -279,7 +279,7 @@ def setSpeed(value) {
 	log.debug "Executing sendCommand in setSpeed"
     log.debug "state.speedNum ${state.speedNum}"
     log.debug "new speed ${value}"
-    if ( "${state.speedNum}" != "${value}" ) { // New speed selection
+    if ( state.speedNum != value ) { // New speed selection
     	if ( state.mOverride != 2 ) { // works for new override or existing timed override
             log.debug "Timed Override of speed to ${value} for 60 minutes"
             sendSpeed("${value}~3600~1")
@@ -289,7 +289,7 @@ def setSpeed(value) {
         }
     } else {
     	log.debug "Adding 60 minutes to manual speed"
-		sendSpeed("0~3600~${state.speedNum}")
+		sendSpeed("0~3600~1") // 0 is add time, 3600 is 60 minutes, 1 is timed override
     }
 }
 
