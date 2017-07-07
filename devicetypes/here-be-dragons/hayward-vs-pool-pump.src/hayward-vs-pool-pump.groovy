@@ -18,8 +18,7 @@ metadata {
 		capability "Actuator" //Best practice to include if it has commands
         capability "Sensor"  //Best practice to include if it has attributes
 		capability "Polling"
-        //capability "Switch"
-		//capability "Switch Level"
+        capability "Switch"
 		capability "Refresh"
 		capability "Relay Switch"
 
