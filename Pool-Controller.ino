@@ -201,7 +201,8 @@ void setup() {
     pinMode(pLED, OUTPUT);//DEBUG
 
     oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);    // Initialize with the I2C addr 0x3D (for the 128x64 screen)
-    Particle.function("mOverride", mOverride); // Listen for a manual override via remote user input
+    Particle.function("mOverride", mOverride); // Listen for a manual override via remote user input for pump
+    Particle.function("solarCmd", solarCmd); // Listen for a manual override via remote user input for solar
     Particle.variable("pumpSpeed", sSpeed);
     Particle.variable("pumpWattage", sWattage);
     Particle.variable("waterFlow", sFlow);
@@ -211,7 +212,7 @@ void setup() {
     Particle.variable("tempPool", sTempPool);
     Particle.variable("tempRoof", sTempRoof);
     Particle.variable("valuesST", sValuesST); // Values to export to SmartThings Device Type
-    Particle.variable("solarST", sValuesST); // Values to export to SmartThings Device Type
+    Particle.variable("solarST", sSolarST); // Values to export to SmartThings Device Type
     
     //DEBUG
     //Particle.variable("illumination",sIllum);
@@ -468,7 +469,7 @@ int mOverride(String command) { //Manual Trigger (SmartThings, button press, etc
     return speedRPM[currentSpeed-1];
 }
 
-int sOverride(String command) { //Manual Trigger for Solar
+int solarCmd(String command) { //Manual Trigger for Solar
     solarControl = atoi(command);
     setSolar();
     trackData();
@@ -613,7 +614,7 @@ void trackData(){
     sTempRoof = String(roofTempF);
     sOverrideEnds = String(convertTime(currentEpochTime));
     sValuesST = sOverride + "~" + sOverrideEnds + "~" + String(currentSpeed) + "~" + sSpeed + "~" + sWattage + "~" + sFlow;
-    //sSolarST = String(solarControl) + "~" + String(solarRequest) + "~" + sTempPool + "~" + sTempRoof + "~" + sTempSolar + "~" + "5";
+    sSolarST = String(solarControl) + "~" + String(solarRequest) + "~" + sTempPool + "~" + sTempRoof + "~" + sTempSolar + "~5";
 }
 
 void updateDisplay(){ //128x64
