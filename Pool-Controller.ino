@@ -612,9 +612,9 @@ void trackData(){
     sTempSolar = String(solarTempF);
     sTempPool = String(poolTempF);
     sTempRoof = String(roofTempF);
-    sOverrideEnds = String(convertTime(currentEpochTime));
+    sOverrideEnds = String(convertTime(overrideEnds));
     sValuesST = sOverride + "~" + sOverrideEnds + "~" + String(currentSpeed) + "~" + sSpeed + "~" + sWattage + "~" + sFlow;
-    sSolarST = String(solarControl) + "~" + String(solarRequest) + "~" + sTempPool + "~" + sTempRoof + "~" + sTempSolar + "~5";
+    sSolarST = String(solarControl) + "~" + String(autoOverride) + "~" + sTempPool + "~" + sTempRoof + "~" + sTempSolar + "~88.654";
 }
 
 void updateDisplay(){ //128x64
