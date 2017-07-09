@@ -2,6 +2,7 @@
 ###### Timer Control of a Hayward Tristar VS Pump and Hayward GL-235 Solar Pool Controller
 ![Alt text](/images/pool_controller.jpg?raw=true "Finished Pool Controller")  
 ![Alt text](/images/grafana.png?raw=true "Grafana Dashboard")
+![Alt text](/images/smartthings_screenshots.png?raw=true "SmartThings Integration")
 ### Overview
 ---------------------
 **Background:**
