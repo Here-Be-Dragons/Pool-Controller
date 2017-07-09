@@ -1,5 +1,5 @@
 // Automated Pool Controller
-// v2.2
+// v2.3
 // by Jerad Jacob
 // Refer to README.md for additional information and latest updates
 // https://github.com/Here-Be-Dragons/Pool-Controller
@@ -132,6 +132,7 @@ float roofTempF;
 //Variables for Solar Heating
 uint8_t solarControl = 2;      // Manual control of solar. 0 = override to off, 1 = override to on, 2 = Solar Controller
 bool autoOverride = 1;          // Changes when solar kicks on. 0 = scheduled speed, 1 = solar min. speed override
+bool solarRequest;              // Request from Hayward controller
 
 //Variables for reporting
 time_t previousDataPublish;     //Webhook publish tracking (Epoch)
@@ -150,6 +151,7 @@ String sResist;
 String sIllum;
 String sOverrideEnds;
 String sValuesST;
+String sSolarST;
 
 //Variables for Display
 uint8_t displayIndex = 0;
@@ -199,7 +201,8 @@ void setup() {
     pinMode(pLED, OUTPUT);//DEBUG
 
     oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);    // Initialize with the I2C addr 0x3D (for the 128x64 screen)
-    Particle.function("mOverride", mOverride); // Listen for a manual override via remote user input
+    Particle.function("mOverride", mOverride); // Listen for a manual override via remote user input for pump
+    Particle.function("solarCmd", solarCmd); // Listen for a manual override via remote user input for solar
     Particle.variable("pumpSpeed", sSpeed);
     Particle.variable("pumpWattage", sWattage);
     Particle.variable("waterFlow", sFlow);
@@ -209,6 +212,7 @@ void setup() {
     Particle.variable("tempPool", sTempPool);
     Particle.variable("tempRoof", sTempRoof);
     Particle.variable("valuesST", sValuesST); // Values to export to SmartThings Device Type
+    Particle.variable("solarST", sSolarST); // Values to export to SmartThings Device Type
     
     //DEBUG
     //Particle.variable("illumination",sIllum);
@@ -286,6 +290,8 @@ void onceAMinute(){
     //Check for new scheduled speed
     scheduledSpeed = findScheduledSpeed(currentTime);
     getTemps();
+    WhTally += (double) ( energyConsum[currentSpeed-1] / 60 ); // Add 1 minute worth of kWh
+    gallonTally += (double) ( flowCalc[currentSpeed-1] );      // Add 1 minute worth of water flow
     trackData();
     lastMinute = Time.minute();
 }
@@ -409,7 +415,7 @@ void setPumpSpeed() {
 
 void setSolar() {
     //Check Solar Controller for request to heat.  Applies in setPumpSpeed()
-    bool solarRequest = digitalRead(pSolarRelay1);
+    solarRequest = digitalRead(pSolarRelay1);
     
     if (solarControl == 0) { // Manual Override: Disable Solar
         digitalWrite(pRelay4, LOW);
@@ -435,6 +441,7 @@ int mOverride(String command) { //Manual Trigger (SmartThings, button press, etc
     overrideLength = atoi(strtok(NULL, "~"));
     manualOverride = atoi(strtok(NULL, "~"));
     if (overrideSpeed == 0 && manualOverride == 1) { //Add the specified time to existing override
+        Particle.publish("Pool Debug", "adding 60 minutes to override");
         overrideEnds = overrideEnds + overrideLength;
     }
     if (overrideSpeed <= 8 && overrideSpeed >= 1){ //These are direct speeds
@@ -460,6 +467,13 @@ int mOverride(String command) { //Manual Trigger (SmartThings, button press, etc
     overrideLength = 0; //Reset overrideLength
     trackData();
     return speedRPM[currentSpeed-1];
+}
+
+int solarCmd(String command) { //Manual Trigger for Solar
+    solarControl = atoi(command);
+    setSolar();
+    trackData();
+    return poolTempF;
 }
 
 void returnToSchedule() {
@@ -589,8 +603,6 @@ void trackData(){
         WhTally = 0;
         gallonTally = 0;
     }
-    WhTally += (double) ( energyConsum[currentSpeed-1] / 60 ); // Add 1 minute worth of kWh
-    gallonTally += (double) ( flowCalc[currentSpeed-1] );      // Add 1 minute worth of water flow
     //previousTime = currentTime;
     sSpeed = String(speedRPM[currentSpeed - 1]);
     sWattage = String(energyConsum[currentSpeed - 1]);
@@ -600,8 +612,9 @@ void trackData(){
     sTempSolar = String(solarTempF);
     sTempPool = String(poolTempF);
     sTempRoof = String(roofTempF);
-    sOverrideEnds = String(convertTime(currentEpochTime));
+    sOverrideEnds = String(convertTime(overrideEnds));
     sValuesST = sOverride + "~" + sOverrideEnds + "~" + String(currentSpeed) + "~" + sSpeed + "~" + sWattage + "~" + sFlow;
+    sSolarST = String(solarControl) + "~" + String(autoOverride) + "~" + sTempPool + "~" + sTempRoof + "~" + sTempSolar + "~88.654";
 }
 
 void updateDisplay(){ //128x64
