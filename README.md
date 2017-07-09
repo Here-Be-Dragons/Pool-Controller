@@ -78,7 +78,7 @@ The first 3 of these are reliant on correct tables in the top of the Photon's co
 -   22AWG 4/C 300v wire (Connected to Pump)
 -   22AWG 2/C 300v wire (Connected to Solar Controller)
 -   0.96" 128x64 SPI/I<sup>2</sup>C OLED Display Module for Arduino (aliexpress.com)
--   Custom printed PCB from Osh Park: https://oshpark.com/shared_projects/12k2QJzh
+-   Custom printed PCB from Osh Park: https://oshpark.com/shared_projects/181LS60Z
 -   10k photoresistor
 -   4 2-pin headers
 -   4 push buttons
