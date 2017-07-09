@@ -17,6 +17,8 @@
         {
           "aliasColors": {},
           "bars": false,
+          "dashLength": 10,
+          "dashes": false,
           "datasource": "collectd",
           "editable": true,
           "error": false,
@@ -47,7 +49,6 @@
               "fill": 1,
               "legend": false,
               "linewidth": 0,
-              "nullPointMode": "null",
               "yaxis": 2,
               "zindex": -3
             },
@@ -68,6 +69,7 @@
               "linewidth": 3
             }
           ],
+          "spaceLength": 10,
           "span": 12,
           "stack": false,
           "steppedLine": false,
@@ -266,6 +268,7 @@
           },
           "type": "graph",
           "xaxis": {
+            "buckets": null,
             "mode": "time",
             "name": null,
             "show": true,
@@ -359,6 +362,7 @@
             "lineColor": "rgb(31, 120, 193)",
             "show": false
           },
+          "tableColumn": "",
           "targets": [
             {
               "dsType": "influxdb",
@@ -374,6 +378,10 @@
                       "value"
                     ],
                     "type": "field"
+                  },
+                  {
+                    "params": [],
+                    "type": "last"
                   }
                 ]
               ],
@@ -457,6 +465,7 @@
             "lineColor": "rgb(31, 120, 193)",
             "show": false
           },
+          "tableColumn": "",
           "targets": [
             {
               "dsType": "influxdb",
@@ -472,6 +481,10 @@
                       "value"
                     ],
                     "type": "field"
+                  },
+                  {
+                    "params": [],
+                    "type": "last"
                   }
                 ]
               ],
@@ -555,6 +568,7 @@
             "lineColor": "rgb(31, 120, 193)",
             "show": false
           },
+          "tableColumn": "",
           "targets": [
             {
               "dsType": "influxdb",
@@ -570,6 +584,10 @@
                       "value"
                     ],
                     "type": "field"
+                  },
+                  {
+                    "params": [],
+                    "type": "last"
                   }
                 ]
               ],
@@ -663,10 +681,18 @@
             "lineColor": "rgb(31, 120, 193)",
             "show": false
           },
+          "tableColumn": "",
           "targets": [
             {
               "dsType": "influxdb",
-              "groupBy": [],
+              "groupBy": [
+                {
+                  "params": [
+                    "instance"
+                  ],
+                  "type": "tag"
+                }
+              ],
               "measurement": "curl_json_value",
               "policy": "default",
               "refId": "A",
@@ -678,6 +704,10 @@
                       "value"
                     ],
                     "type": "field"
+                  },
+                  {
+                    "params": [],
+                    "type": "last"
                   }
                 ]
               ],
@@ -686,6 +716,18 @@
                   "key": "instance",
                   "operator": "=",
                   "value": "solarAct"
+                },
+                {
+                  "condition": "AND",
+                  "key": "type",
+                  "operator": "=",
+                  "value": "gauge"
+                },
+                {
+                  "condition": "AND",
+                  "key": "type_instance",
+                  "operator": "=",
+                  "value": "result"
                 }
               ]
             }
@@ -729,10 +771,14 @@
         {
           "aliasColors": {},
           "bars": false,
+          "dashLength": 10,
+          "dashes": false,
           "datasource": "collectd",
-          "fill": 1,
+          "fill": 0,
           "id": 10,
+          "interval": "",
           "legend": {
+            "alignAsTable": false,
             "avg": false,
             "current": false,
             "hideZero": true,
@@ -757,8 +803,27 @@
               "legend": false,
               "linewidth": 0,
               "yaxis": 2
+            },
+            {
+              "alias": "localTemp",
+              "color": "#705DA0",
+              "fill": 0
+            },
+            {
+              "alias": "tempPool",
+              "color": "#64B0C8",
+              "linewidth": 3
+            },
+            {
+              "alias": "tempSolar",
+              "color": "#EAB839"
+            },
+            {
+              "alias": "tempRoof",
+              "color": "#2F575E"
             }
           ],
+          "spaceLength": 10,
           "span": 12,
           "stack": false,
           "steppedLine": false,
@@ -821,17 +886,12 @@
                     "$interval"
                   ],
                   "type": "time"
-                },
-                {
-                  "params": [
-                    "null"
-                  ],
-                  "type": "fill"
                 }
               ],
+              "measurement": "curl_json_value",
               "policy": "default",
               "query": "SELECT mean(\"value\")  * 100 FROM \"curl_json_value\" WHERE \"instance\" = 'solarAct' AND $timeFilter GROUP BY time($interval) fill(null)",
-              "rawQuery": true,
+              "rawQuery": false,
               "refId": "B",
               "resultFormat": "time_series",
               "select": [
@@ -848,7 +908,19 @@
                   }
                 ]
               ],
-              "tags": []
+              "tags": [
+                {
+                  "key": "host",
+                  "operator": "=",
+                  "value": "jupiter"
+                },
+                {
+                  "condition": "AND",
+                  "key": "instance",
+                  "operator": "=",
+                  "value": "solarAct"
+                }
+              ]
             }
           ],
           "thresholds": [],
@@ -856,12 +928,13 @@
           "timeShift": null,
           "title": "Temperatures",
           "tooltip": {
-            "shared": true,
-            "sort": 0,
+            "shared": false,
+            "sort": 1,
             "value_type": "individual"
           },
           "type": "graph",
           "xaxis": {
+            "buckets": null,
             "mode": "time",
             "name": null,
             "show": true,
@@ -872,15 +945,15 @@
               "format": "farenheit",
               "label": null,
               "logBase": 1,
-              "max": null,
-              "min": "50",
+              "max": "120",
+              "min": "60",
               "show": true
             },
             {
               "format": "short",
               "label": "",
               "logBase": 1,
-              "max": "10",
+              "max": "1",
               "min": null,
               "show": false
             }
@@ -945,13 +1018,14 @@
               "to": "null"
             }
           ],
-          "span": 4,
+          "span": 3,
           "sparkline": {
             "fillColor": "rgba(31, 118, 189, 0.18)",
             "full": false,
             "lineColor": "rgb(31, 120, 193)",
             "show": false
           },
+          "tableColumn": "",
           "targets": [
             {
               "dsType": "influxdb",
@@ -1056,13 +1130,14 @@
               "to": "null"
             }
           ],
-          "span": 4,
+          "span": 3,
           "sparkline": {
             "fillColor": "rgba(31, 118, 189, 0.18)",
             "full": false,
             "lineColor": "rgb(31, 120, 193)",
             "show": false
           },
+          "tableColumn": "",
           "targets": [
             {
               "dsType": "influxdb",
@@ -1094,7 +1169,7 @@
                   },
                   {
                     "params": [],
-                    "type": "mean"
+                    "type": "last"
                   }
                 ]
               ],
@@ -1173,13 +1248,14 @@
               "to": "null"
             }
           ],
-          "span": 4,
+          "span": 3,
           "sparkline": {
             "fillColor": "rgba(31, 118, 189, 0.18)",
             "full": false,
             "lineColor": "rgb(31, 120, 193)",
             "show": false
           },
+          "tableColumn": "",
           "targets": [
             {
               "dsType": "influxdb",
@@ -1211,7 +1287,7 @@
                   },
                   {
                     "params": [],
-                    "type": "mean"
+                    "type": "last"
                   }
                 ]
               ],
@@ -1242,6 +1318,118 @@
             }
           ],
           "valueName": "current"
+        },
+        {
+          "cacheTimeout": null,
+          "colorBackground": false,
+          "colorValue": false,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "datasource": "collectd",
+          "decimals": 1,
+          "format": "farenheit",
+          "gauge": {
+            "maxValue": 100,
+            "minValue": 60,
+            "show": false,
+            "thresholdLabels": false,
+            "thresholdMarkers": false
+          },
+          "id": 14,
+          "interval": null,
+          "links": [],
+          "mappingType": 1,
+          "mappingTypes": [
+            {
+              "name": "value to text",
+              "value": 1
+            },
+            {
+              "name": "range to text",
+              "value": 2
+            }
+          ],
+          "maxDataPoints": 100,
+          "nullPointMode": "connected",
+          "nullText": null,
+          "postfix": "",
+          "postfixFontSize": "50%",
+          "prefix": "",
+          "prefixFontSize": "50%",
+          "rangeMaps": [
+            {
+              "from": "null",
+              "text": "N/A",
+              "to": "null"
+            }
+          ],
+          "span": 3,
+          "sparkline": {
+            "fillColor": "rgba(31, 118, 189, 0.18)",
+            "full": false,
+            "lineColor": "rgb(31, 120, 193)",
+            "show": false
+          },
+          "tableColumn": "",
+          "targets": [
+            {
+              "dsType": "influxdb",
+              "groupBy": [
+                {
+                  "params": [
+                    "$interval"
+                  ],
+                  "type": "time"
+                }
+              ],
+              "measurement": "curl_json_value",
+              "policy": "default",
+              "refId": "A",
+              "resultFormat": "time_series",
+              "select": [
+                [
+                  {
+                    "params": [
+                      "value"
+                    ],
+                    "type": "field"
+                  },
+                  {
+                    "params": [],
+                    "type": "last"
+                  }
+                ]
+              ],
+              "tags": [
+                {
+                  "key": "type",
+                  "operator": "=",
+                  "value": "temperature"
+                },
+                {
+                  "condition": "AND",
+                  "key": "instance",
+                  "operator": "=",
+                  "value": "localTemp"
+                }
+              ]
+            }
+          ],
+          "thresholds": "75,85",
+          "title": "Temp: Ambient",
+          "type": "singlestat",
+          "valueFontSize": "80%",
+          "valueMaps": [
+            {
+              "op": "=",
+              "text": "N/A",
+              "value": "null"
+            }
+          ],
+          "valueName": "current"
         }
       ],
       "repeat": null,
@@ -1259,7 +1447,7 @@
     "list": []
   },
   "time": {
-    "from": "now-24h",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {
@@ -1289,5 +1477,5 @@
   },
   "timezone": "browser",
   "title": "Pool Controller",
-  "version": 43
+  "version": 63
 }
