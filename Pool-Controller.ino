@@ -10,6 +10,9 @@
 // This #include statement was automatically added by the Particle IDE.
 #include <Adafruit_SSD1306.h> //OLED
 
+SYSTEM_MODE(SEMI_AUTOMATIC); //Prevent blocking on setup()
+SYSTEM_THREAD(ENABLED); //Prevents blocking code when offline.
+
 ////
 //Start of user configurations
 ////
@@ -52,7 +55,7 @@ uint8_t minSolarSpeed = 6;
 // time entered, the higher speed takes precidence.  Leave off any
 // preceeding zeros, as they will prevent a proper match.
 
-/*
+
 /////
 //Winter Schedule
 /////
@@ -64,8 +67,8 @@ uint16_t aSpeed5[] = {                        }; // 2300 RPM
 uint16_t aSpeed6[] = {    1000,   1300        }; // 2750 RPM
 uint16_t aSpeed7[] = {                        }; // 3000 RPM
 uint16_t aSpeed8[] = {                        }; // 3450 RPM
-*/
 
+/*
 /////
 //Summer Schedule
 /////
@@ -77,7 +80,7 @@ uint16_t aSpeed5[] = {                        }; // 2300 RPM
 uint16_t aSpeed6[] = {    1000,   1300        }; // 2750 RPM
 uint16_t aSpeed7[] = {                        }; // 3000 RPM
 uint16_t aSpeed8[] = {                        }; // 3450 RPM
-
+*/
 // Button resistances (found via manual probing, see test-buttons.ino)
 // Only needs to be within +/- 15 of actual measured value to account for noise
 uint16_t buttonResist1 = 2435;
@@ -95,8 +98,8 @@ uint16_t rRoof = 10030;
 ////
 
 // This value persists permanently on the Photon even after flashes/reboots
-//STARTUP(WiFi.selectAntenna(ANT_EXTERNAL)); // Use external antenna
-STARTUP(WiFi.selectAntenna(ANT_INTERNAL)); // Use internal antenna
+STARTUP(WiFi.selectAntenna(ANT_EXTERNAL)); // Use external antenna
+//STARTUP(WiFi.selectAntenna(ANT_INTERNAL)); // Use internal antenna
 
 time_t currentEpochTime = 0;    //The current Epoch time set at the beginning of each loop in getTimes()
 uint16_t currentTime = 0;       //Friendly time converted from currentEpochTime via convertTime(), 10:00 PM is referenced as 2200
@@ -128,6 +131,7 @@ uint8_t lastActionedButton = 0; // the last button actioned
 float poolTempF;
 float solarTempF;
 float roofTempF;
+float ambTempF;
 
 //Variables for Solar Heating
 uint8_t solarControl = 2;      // Manual control of solar. 0 = override to off, 1 = override to on, 2 = Solar Controller
@@ -146,6 +150,7 @@ String sOverride;
 String sTempSolar;
 String sTempPool;
 String sTempRoof;
+String sTempAmb;
 String sButton;
 String sResist;
 String sIllum;
@@ -214,10 +219,14 @@ void setup() {
     Particle.variable("valuesST", sValuesST); // Values to export to SmartThings Device Type
     Particle.variable("solarST", sSolarST); // Values to export to SmartThings Device Type
     
-    //DEBUG
-    //Particle.variable("illumination",sIllum);
+    // I have a weather station that is already sending Webhooks to DarkSky.net.
+    // This just listens for the response and parses out local ambient air temp.
+    // The weather station project is here: 
+    Particle.subscribe("290023001047343339383037/hook-response/weather/", gotWeatherData, MY_DEVICES);
+    
+    Particle.connect(); // Needed in SEMI_AUTOMATIC
    
-    for (int x = 3; x > 0; x--){                   // Give it x seconds to stabilize the RTC and get a time from NTP
+    for (int x = 10; x > 0; x--){                   // Give it x seconds to stabilize the RTC and get a time from NTP
         oled.clearDisplay();                       // Clear Screen
         oled.drawRect(0,0,128,64, WHITE);
         oled.drawRect(1,1,127,63, WHITE);
@@ -504,8 +513,10 @@ void checkIllum(){
 }
 
 void getTemps(){
-    solarTempF = solarTherm.readTempF();
-    poolTempF = poolTherm.readTempF();
+    if (currentSpeed != 1) {
+        solarTempF = solarTherm.readTempF();
+        poolTempF = poolTherm.readTempF();
+    }
     roofTempF = roofTherm.readTempF();
     
     sTempSolar = String(solarTempF);
@@ -612,9 +623,10 @@ void trackData(){
     sTempSolar = String(solarTempF);
     sTempPool = String(poolTempF);
     sTempRoof = String(roofTempF);
+    sTempAmb = String(ambTempF);
     sOverrideEnds = String(convertTime(overrideEnds));
     sValuesST = sOverride + "~" + sOverrideEnds + "~" + String(currentSpeed) + "~" + sSpeed + "~" + sWattage + "~" + sFlow;
-    sSolarST = String(solarControl) + "~" + String(autoOverride) + "~" + sTempPool + "~" + sTempRoof + "~" + sTempSolar + "~88.654";
+    sSolarST = String(solarControl) + "~" + String(autoOverride) + "~" + sTempPool + "~" + sTempRoof + "~" + sTempSolar + "~" + sTempAmb;
 }
 
 void updateDisplay(){ //128x64
@@ -777,4 +789,13 @@ void updateDisplay(){ //128x64
         }
     }
     oled.display();
+}
+
+void gotWeatherData(const char *name, const char *data) {
+    
+    String str = String(data);
+    char strBuffer[400] = "";
+    str.toCharArray(strBuffer, 400);
+    
+    ambTempF = atof(strtok(strBuffer, "~"));
 }
